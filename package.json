@@ -1,0 +1,21 @@
+{
+  "name": "notes-app-backend",
+  "version": "1.0.0",
+  "description": "Created by Jacob Broughton",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacobbroughton/notes-app-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jacobbroughton/notes-app-backend/issues"
+  },
+  "homepage": "https://github.com/jacobbroughton/notes-app-backend#readme"
+}
