@@ -14,7 +14,7 @@ module.exports.isAuth = function (req, res, next) {
 };
 
 module.exports.isAdmin = function (req, res, next) {
-  if (req.isAuthenticated() && req.user.admin) {
+  if (req.isAuthenticated() && req.user.ADMIN) {
     next(); // moves on
   } else {
     res.status(401).json({ message: "You are not an admin" });

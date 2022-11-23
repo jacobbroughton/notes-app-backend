@@ -14,7 +14,7 @@ router.get("/", isAuth, (req, res) => {
 router.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/protected-route",
+    successRedirect: "/",
     failureRedirect: "/login-failure",
   })
 );
@@ -26,7 +26,7 @@ router.post("/register", (req, res) => {
         WHERE USERNAME = '${req.body.username}'
     `,
     (err, result, fields) => {
-      if (err) console.log(err);
+      if (err) throw err;
 
       if (result.length) {
         res.status(400).send({ message: "User already exists" });
@@ -52,12 +52,11 @@ router.post("/register", (req, res) => {
                 '${hash}',
                 '${salt}',
                 SYSDATE(), 
-                SYSDATE()
+                null
             )
         `,
         (err, result, fields) => {
-          if (err) console.log(err);
-          console.log(result);
+          if (err) throw err;
           res.send({ result: "Successfully registered" });
         }
       );
@@ -70,30 +69,60 @@ router.get("/protected-route", isAuth, (req, res) => {
 });
 
 router.get("/admin-route", isAdmin, (req, res) => {
-  //   if (!req.isAuthenticated()) {
-  //     console.log("Not authenticated!");
-  //     return;
-  //   }
   res.send({ result: "You made it to the admin route", user: req.user });
 });
 
-router.get("/login-failure", isAuth, (req, res) => {
-  //   if (!req.isAuthenticated()) {
-  //     console.log("Not authenticated!");
-  //     return;
-  //   }
+router.get("/login-failure", (req, res) => {
   res.send({ result: "Login failed", user: req.user });
 });
 
 // Removes req.session.passport.user property from session
-router.get("/logout", (req, res) => {
+router.get("/logout", (req, res, next) => {
   req.logout((err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send({ result: "Successfully logged out" });
-    }
-  });
+    if (err) throw err
+    req.session.destroy()
+    res.clearCookie('connect.sid')
+    res.send({ message: "Logged out successfully" })
+  })
 });
+
+
+// router.post('/folders/new', isAuth, (req, res, next) => {
+//   connection.query(`
+//     INSERT INTO TBL_FOLDER (
+//       PARENT_FOLDER_ID,
+//       NAME,
+//       EFF_STATUS,
+//       PINNED_STATUS,
+//       CREATED_DTTM,
+//       MODIFIED_DTTM,
+//       CREATED_BY_ID,
+//       MODIFIED_BY_ID
+//     ) VALUES (
+//       ${req.body.parentFolderId},
+//       '${req.body.newFolderName}',
+//       true,
+//       false,
+//       SYSDATE(),
+//       null,
+//       ${req.user.ID},
+//       null
+//     )
+//   `, (err, result) => {
+//     if (err) throw err
+//     res.send({ message: 'Successfully added folder' })
+//   })
+// })
+
+// router.get('/folders', (req, res) => {
+//   connection.query(`
+//   SELECT * FROM TBL_FOLDER
+//   WHERE EFF_STATUS = 1
+//   AND CREATED_BY_ID = ${req.user.ID}
+//   `, (err, rows) => {
+//     if (err) throw err
+//     res.send({ folders: rows })
+//   }) 
+// })
 
 module.exports = router;

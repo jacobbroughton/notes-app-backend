@@ -20,7 +20,7 @@ const verifyCallback = (username, password, done) => {
       WHERE USERNAME = '${username}'
     `,
       (err, result, fields) => {
-        if (err) console.log(err);
+        if (err) throw err;
 
         user = result[0];
 
@@ -53,7 +53,6 @@ passport.use(strategy);
 // Grabs user from database and stores it in req.session.passport.user
 // Determines which data of the user object should be stored in the session.
 passport.serializeUser((user, done) => {
-  console.log("Serializing", user);
 
   // The user id argument is saved in the session and is later used
   // to retrieve the whole object via the deserializeUser function.
@@ -62,7 +61,6 @@ passport.serializeUser((user, done) => {
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
-  console.log("Deserializing");
 
   connection.query(`
     SELECT * FROM notesApp.TBL_USER
@@ -72,7 +70,6 @@ passport.deserializeUser((userId, done) => {
 
       const user = result[0];
 
-      console.log("Made it here");
       done(null, user); // attaches user to req.user
     }
   );
