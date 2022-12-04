@@ -156,7 +156,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
   }
 
   await getNestedRows(req.body.folderId);
-  await deletePages(pagesToDelete);
+  if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
   await deleteFolders(foldersToDelete);
 
   res.send({ deletedFolders: foldersToDelete, deletedPages: pagesToDelete, message: "Folders and pages successfully deleted" })

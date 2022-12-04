@@ -9,12 +9,12 @@ router.get("/", isAuth, (req, res) => {
   const sql = `
   SELECT * FROM TBL_PAGE
   WHERE EFF_STATUS = 1
-  AND CREATED_BY_ID = ${req.user.ID}
+  AND CREATED_BY_ID = ?
   `;
 
-  connection.query(sql, (err, rows) => {
-    if (err) throw err
-    res.send({ pages: rows, message: "Successfully got pages" })
+  connection.query(sql, [req.user.ID], (err, rows) => {
+    if (err) throw err;
+    res.send({ pages: rows, message: "Successfully got pages" });
   });
 });
 
@@ -31,36 +31,87 @@ router.post("/new", isAuth, (req, res) => {
     CREATED_BY_ID,
     MODIFIED_BY_ID
   ) VALUES (
-    ${req.body.parentFolderId},
-    '${req.body.newPageName}',
-    '',
-    '',
+    ?,
+    ?,
+    ?,
+    ?,
     1,
     SYSDATE(),
     null,
-    ${req.user.ID},
+    ?,
     null
   )
   `;
 
-  connection.query(sql, (err, result) => {
-    if (err) throw err;
-    res.send({ result, message: "Successfully added a new note" });
-  });
+  connection.query(
+    sql,
+    [
+      req.body.parentFolderId,
+      req.body.newPageName,
+      req.body.newPageName,
+      req.body.newPageBody,
+      req.user.ID,
+    ],
+    (err, result) => {
+      if (err) throw err;
+      res.send({
+        result,
+        requestBody: req.body,
+        message: "Successfully added a new page",
+      });
+    }
+  );
 });
 
+router.post("/edit", isAuth, (req, res, next) => {
+  if (!req.body.title) throw new Error("Title cannot be empty");
+
+  const sql = `
+    UPDATE TBL_PAGE
+    SET 
+    TITLE = ?,
+    BODY = ?,
+    MODIFIED_DTTM = SYSDATE()
+    WHERE PAGE_ID = ?
+  `;
+
+  connection.query(
+    sql,
+    [
+      req.body.title.replaceAll("'", "''"),
+      req.body.body?.replaceAll("'", "''"),
+      req.body.pageId,
+    ],
+    (err, result) => {
+      if (err) throw err;
+
+      const sql = `
+      SELECT * 
+      FROM TBL_PAGE
+      WHERE PAGE_ID = ?
+      AND EFF_STATUS = 1
+    `;
+
+      connection.query(sql, [req.body.pageId], (err, rows) => {
+        if (err) throw err;
+
+        res.send({ modifiedPage: rows[0], message: "Successfully edited page" });
+      });
+    }
+  );
+});
 
 router.post("/delete", isAuth, (req, res, next) => {
   const sql = `
   UPDATE TBL_PAGE
   SET EFF_STATUS = 0
-  WHERE PAGE_ID = ${req.body.pageId}
+  WHERE PAGE_ID = ?
 `;
 
-  connection.query(sql, (err, result) => {
+  connection.query(sql, [req.body.pageId], (err, result) => {
     if (err) throw err;
 
-    res.send({ result, message: 'Successfully deleted page' })
+    res.send({ result, message: "Successfully deleted page" });
   });
 });
 

@@ -23,8 +23,9 @@ router.post("/register", (req, res) => {
   connection.query(
     `
         SELECT * FROM notesApp.TBL_USER
-        WHERE USERNAME = '${req.body.username}'
+        WHERE USERNAME = ?
     `,
+    [req.body.username],
     (err, result, fields) => {
       if (err) throw err;
 
@@ -48,16 +49,17 @@ router.post("/register", (req, res) => {
                 CREATED_DTTM,
                 MODIFIED_DTTM
             ) VALUES (
-                '${req.body.username}',
-                '${hash}',
-                '${salt}',
+                ?,
+                ?,
+                ?,
                 SYSDATE(), 
                 null
             )
         `,
+        [req.body.username, hash, salt],
         (err, result, fields) => {
           if (err) throw err;
-          res.send({ result: "Successfully registered" });
+          res.send({ result, message: "Successfully registered" });
         }
       );
     }
@@ -65,64 +67,25 @@ router.post("/register", (req, res) => {
 });
 
 router.get("/protected-route", isAuth, (req, res) => {
-  res.send({ result: "You made it to the protected route", user: req.user });
+  res.send({ message: "You made it to the protected route", user: req.user });
 });
 
 router.get("/admin-route", isAdmin, (req, res) => {
-  res.send({ result: "You made it to the admin route", user: req.user });
+  res.send({ message: "You made it to the admin route", user: req.user });
 });
 
 router.get("/login-failure", (req, res) => {
-  res.send({ result: "Login failed", user: req.user });
+  res.send({ message: "Login failed", user: req.user });
 });
 
 // Removes req.session.passport.user property from session
 router.get("/logout", (req, res, next) => {
   req.logout((err) => {
-    if (err) throw err
-    req.session.destroy()
-    res.clearCookie('connect.sid')
-    res.send({ message: "Logged out successfully" })
-  })
+    if (err) throw err;
+    req.session.destroy();
+    res.clearCookie("connect.sid");
+    res.send({ message: "Logged out successfully" });
+  });
 });
-
-
-// router.post('/folders/new', isAuth, (req, res, next) => {
-//   connection.query(`
-//     INSERT INTO TBL_FOLDER (
-//       PARENT_FOLDER_ID,
-//       NAME,
-//       EFF_STATUS,
-//       PINNED_STATUS,
-//       CREATED_DTTM,
-//       MODIFIED_DTTM,
-//       CREATED_BY_ID,
-//       MODIFIED_BY_ID
-//     ) VALUES (
-//       ${req.body.parentFolderId},
-//       '${req.body.newFolderName}',
-//       true,
-//       false,
-//       SYSDATE(),
-//       null,
-//       ${req.user.ID},
-//       null
-//     )
-//   `, (err, result) => {
-//     if (err) throw err
-//     res.send({ message: 'Successfully added folder' })
-//   })
-// })
-
-// router.get('/folders', (req, res) => {
-//   connection.query(`
-//   SELECT * FROM TBL_FOLDER
-//   WHERE EFF_STATUS = 1
-//   AND CREATED_BY_ID = ${req.user.ID}
-//   `, (err, rows) => {
-//     if (err) throw err
-//     res.send({ folders: rows })
-//   }) 
-// })
 
 module.exports = router;
