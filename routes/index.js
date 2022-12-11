@@ -4,6 +4,7 @@ const genPassword = require("../lib/passwordUtils").genPassword;
 const connection = require("../config/database").connection;
 const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
+const { body } = require('express-validator');
 
 router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
@@ -25,7 +26,7 @@ router.post("/register", (req, res) => {
         SELECT * FROM notesApp.TBL_USER
         WHERE USERNAME = ?
     `,
-    [req.body.username],
+    [body(req.body.username).escape().trim()],
     (err, result, fields) => {
       if (err) throw err;
 

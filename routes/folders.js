@@ -6,15 +6,16 @@ const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
 const util = require("util");
 const query = util.promisify(connection.query).bind(connection);
+const { body } = require("express-validator") ;
 
 router.get("/", isAuth, (req, res) => {
   const sql = `
   SELECT * FROM TBL_FOLDER
   WHERE EFF_STATUS = 1
-  AND CREATED_BY_ID = ${req.user.ID}
+  AND CREATED_BY_ID = ?
   `;
 
-  query(sql, (err, rows) => {
+  query(sql, [req.user.ID], (err, rows) => {
     if (err) throw err;
 
     let folders = [];
@@ -79,61 +80,72 @@ router.post("/new", isAuth, (req, res, next) => {
     CREATED_BY_ID,
     MODIFIED_BY_ID
   ) VALUES (
-    ${req.body.parentFolderId},
-    '${req.body.newFolderName}',
+    ?,
+    ?,
     true,
     SYSDATE(),
     null,
-    ${req.user.ID},
+    ?,
     null
   )
 `;
 
-  query(sql, (err, result) => {
-    if (err) throw err;
-    res.send({ message: "Successfully added folder" });
-  });
+  query(
+    sql,
+    [
+      // body(req.body.parentFolderId).escape().trim(),
+      // body(req.body.newFolderName).escape().trim(),
+      // body(req.user.ID).escape().trim(),
+      req.body.parentFolderId,
+      req.body.newFolderName,
+      req.user.ID,
+    ],
+    (err, result) => {
+      if (err) throw err;
+      res.send({ message: "Successfully added folder" });
+    }
+  );
 });
 
 router.post("/delete", isAuth, async (req, res, next) => {
   async function getChildren(folderId) {
     return await query(`
     SELECT ID FROM TBL_FOLDER
-    WHERE PARENT_FOLDER_ID = ${folderId}
+    WHERE PARENT_FOLDER_ID = ?
     AND EFF_STATUS = 1
-  `);
+  `, [folderId]);
   }
 
   async function getPagesInFolder(folderId) {
     return await query(`
     SELECT PAGE_ID FROM TBL_PAGE
-    WHERE FOLDER_ID = ${folderId}
+    WHERE FOLDER_ID = ?
     AND EFF_STATUS = 1
-  `);
+  `, [folderId]);
   }
 
-  async function deletefolders(folderId) {
-    return await query(`
-    SELECT PAGE_ID FROM TBL_PAGE
-    WHERE FOLDER_ID = ${folderId}
-    AND EFF_STATUS = 1
-  `);
-  }
+  // async function deletefolders(folderId) {
+  //   return await query(`
+  //   SELECT PAGE_ID FROM TBL_PAGE
+  //   WHERE FOLDER_ID = ?
+  //   AND EFF_STATUS = 1
+  // `, [folderId]);
+  // }
 
   async function deleteFolders(folderIds) {
     return await query(`
     UPDATE TBL_FOLDER
     SET EFF_STATUS = 0
-    WHERE ID IN (${folderIds.join(", ")})
-  `);
+    WHERE ID IN (?)
+  `, [...folderIds]);
   }
 
   async function deletePages(pageIds) {
     return await query(`
     UPDATE TBL_PAGE
     SET EFF_STATUS = 0
-    WHERE PAGE_ID IN (${pageIds.join(", ")})
-  `);
+    WHERE PAGE_ID IN (?)
+  `, [...pageIds]);
   }
 
   let foldersToDelete = [];
@@ -159,7 +171,11 @@ router.post("/delete", isAuth, async (req, res, next) => {
   if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
   await deleteFolders(foldersToDelete);
 
-  res.send({ deletedFolders: foldersToDelete, deletedPages: pagesToDelete, message: "Folders and pages successfully deleted" })
+  res.send({
+    deletedFolders: foldersToDelete,
+    deletedPages: pagesToDelete,
+    message: "Folders and pages successfully deleted",
+  });
   // for (let i = 0; i < foldersToDelete.length; i++) {
   //   deletePages
   // }

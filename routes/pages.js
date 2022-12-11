@@ -4,6 +4,7 @@ const genPassword = require("../lib/passwordUtils").genPassword;
 const connection = require("../config/database").connection;
 const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
+const { body, check } = require("express-validator");
 
 router.get("/", isAuth, (req, res) => {
   const sql = `
@@ -19,6 +20,9 @@ router.get("/", isAuth, (req, res) => {
 });
 
 router.post("/new", isAuth, (req, res) => {
+
+  console.log(req.body)
+
   const sql = `
   INSERT INTO TBL_PAGE (
     FOLDER_ID,
@@ -49,7 +53,7 @@ router.post("/new", isAuth, (req, res) => {
       req.body.parentFolderId,
       req.body.newPageName,
       req.body.newPageName,
-      req.body.newPageBody,
+      (req.body.newPageBody || ''),
       req.user.ID,
     ],
     (err, result) => {
@@ -99,6 +103,30 @@ router.post("/edit", isAuth, (req, res, next) => {
       });
     }
   );
+});
+
+router.post("/updateParentFolder", isAuth, (req, res) => {
+  let newFolderId;
+
+  if (req.body.droppedOntoItem.TIER === 0) {
+    newFolderId = null;
+  } else {
+    newFolderId = req.body.droppedOntoItem?.ID
+      ? req.body.droppedOntoItem?.ID
+      : req.body.droppedOntoItem?.FOLDER_ID;
+  }
+
+  const sql = `
+    UPDATE TBL_PAGE
+    SET FOLDER_ID = ${newFolderId}
+    WHERE PAGE_ID = ${req.body.affectedPage?.PAGE_ID}
+  `;
+
+  connection.query(sql, (err, result) => {
+    if (err) throw err;
+
+    res.send({ result, message: "Successfully updated parent folder id" });
+  });
 });
 
 router.post("/delete", isAuth, (req, res, next) => {
