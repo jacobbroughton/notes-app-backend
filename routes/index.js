@@ -4,7 +4,7 @@ const genPassword = require("../lib/passwordUtils").genPassword;
 const connection = require("../config/database").connection;
 const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
-const { body } = require('express-validator');
+const { body } = require("express-validator");
 
 router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
@@ -26,7 +26,7 @@ router.post("/register", (req, res) => {
         SELECT * FROM notesApp.TBL_USER
         WHERE USERNAME = ?
     `,
-    [body(req.body.username).escape().trim()],
+    [req.body.username],
     (err, result, fields) => {
       if (err) throw err;
 
@@ -76,7 +76,10 @@ router.get("/admin-route", isAdmin, (req, res) => {
 });
 
 router.get("/login-failure", (req, res) => {
-  res.send({ message: "Login failed", user: req.user });
+  res.send({
+    message: "Login failed, please check your username and password and try again.",
+    user: req.user,
+  });
 });
 
 // Removes req.session.passport.user property from session
