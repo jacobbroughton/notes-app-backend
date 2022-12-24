@@ -6,7 +6,7 @@ const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
 const util = require("util");
 const query = util.promisify(connection.query).bind(connection);
-const { body } = require("express-validator") ;
+const { body } = require("express-validator");
 
 router.get("/", isAuth, (req, res) => {
   const sql = `
@@ -93,9 +93,6 @@ router.post("/new", isAuth, (req, res, next) => {
   query(
     sql,
     [
-      // body(req.body.parentFolderId).escape().trim(),
-      // body(req.body.newFolderName).escape().trim(),
-      // body(req.user.ID).escape().trim(),
       req.body.parentFolderId,
       req.body.newFolderName,
       req.user.ID,
@@ -106,6 +103,7 @@ router.post("/new", isAuth, (req, res, next) => {
     }
   );
 });
+
 
 router.post("/delete", isAuth, async (req, res, next) => {
   async function getChildren(folderId) {
@@ -179,6 +177,34 @@ router.post("/delete", isAuth, async (req, res, next) => {
   // for (let i = 0; i < foldersToDelete.length; i++) {
   //   deletePages
   // }
+});
+
+router.post("/delete-multiple", isAuth, (req, res) => {
+
+  const folderIdsForDelete = req.body.folders.map(folder => folder.ID)
+
+  const sql = `
+    UPDATE TBL_FOLDER
+    SET EFF_STATUS = 0
+    WHERE ID IN (?)
+  `
+
+  connection.query(sql, [[...folderIdsForDelete]], (err, result) => {
+    if (err) throw err;
+    res.send({ result, deletedFolderIds: folderIdsForDelete, message: "Successfully deleted multiple folders" })
+  })
+})
+
+router.post("/rename", isAuth, (req, res) => {
+  const sql = `
+  UPDATE TBL_FOLDER
+  SET NAME = ?
+  WHERE ID = ?
+  `
+  connection.query(sql, [req.body.newName, req.body.folderId], (err, result) => {
+    if (err) throw err;
+    res.send({ result, message: "Successfully renamed folder" })
+  });
 });
 
 module.exports = router;

@@ -20,8 +20,7 @@ router.get("/", isAuth, (req, res) => {
 });
 
 router.post("/new", isAuth, (req, res) => {
-
-  console.log(req.body)
+  console.log(req.body);
 
   const sql = `
   INSERT INTO TBL_PAGE (
@@ -53,7 +52,7 @@ router.post("/new", isAuth, (req, res) => {
       req.body.parentFolderId,
       req.body.newPageName,
       req.body.newPageName,
-      (req.body.newPageBody || ''),
+      req.body.newPageBody || "",
       req.user.ID,
     ],
     (err, result) => {
@@ -67,7 +66,7 @@ router.post("/new", isAuth, (req, res) => {
   );
 });
 
-router.post("/edit", isAuth, (req, res, next) => {
+router.post("/edit", isAuth, (req, res) => {
   if (!req.body.title) throw new Error("Title cannot be empty");
 
   const sql = `
@@ -129,7 +128,7 @@ router.post("/updateParentFolder", isAuth, (req, res) => {
   });
 });
 
-router.post("/delete", isAuth, (req, res, next) => {
+router.post("/delete", isAuth, (req, res) => {
   const sql = `
   UPDATE TBL_PAGE
   SET EFF_STATUS = 0
@@ -140,6 +139,39 @@ router.post("/delete", isAuth, (req, res, next) => {
     if (err) throw err;
 
     res.send({ result, message: "Successfully deleted page" });
+  });
+});
+
+router.post("/delete-multiple", isAuth, (req, res) => {
+
+  const pageIdsForDelete = req.body.pages.map(page => page.PAGE_ID)
+
+  console.log(pageIdsForDelete)
+
+  const sql = `
+    UPDATE TBL_PAGE
+    SET EFF_STATUS = 0
+    WHERE PAGE_ID IN (?)
+  `
+
+  console.log(sql)
+
+  connection.query(sql, [[...pageIdsForDelete]], (err, result) => {
+    if (err) throw err;
+    res.send({ result, deletedPageIds: pageIdsForDelete, message: "Successfully deleted multiple pages" })
+  })
+})
+
+router.post("/rename", isAuth, (req, res) => {
+  const sql = `
+  UPDATE TBL_PAGE
+  SET NAME = ?
+  WHERE PAGE_ID = ?
+  `
+  console.log(sql)
+  connection.query(sql, [req.body.newName, req.body.pageId], (err, result) => {
+    if (err) throw err;
+    res.send({ result, message: "Successfully renamed page" })
   });
 });
 
