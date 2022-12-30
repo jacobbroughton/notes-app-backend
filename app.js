@@ -9,16 +9,6 @@ const { sessionStore } = require("./config/database.js");
 const app = express();
 const port = process.env.PORT || 3001;
 
-// const dbOptions = {
-//   host: process.env.DB_HOST,
-//   port: process.env.DB_PORT,
-//   user: process.env.DB_USER,
-//   password: process.env.DB_PASSWORD,
-//   database: process.env.DB_NAME,
-// };
-
-// const connection = mysql.createConnection(dbOptions);
-
 app.use(
   session({
     store: sessionStore,
@@ -50,6 +40,7 @@ app.use(passport.session()); // allows passport to plug into sessions table
 app.use(require("./routes"));
 app.use('/folders', require("./routes/folders"));
 app.use('/pages', require("./routes/pages"));
+app.use('/tags', require("./routes/tags"));
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
