@@ -58,16 +58,19 @@ router.post('/new', isAuth, (req, res) => {
     connection.query(CREATE_TAG, [req.body.name, req.body.color, req.user.ID], (err, result) => {
       if (err) throw err
 
-      if (req.body.isForItem) {
-        const SELECT_JUST_CREATED_TAG = `
+      // if (req.body.isForItem) {
+      const SELECT_JUST_CREATED_TAG = `
           SELECT * FROM TBL_TAG 
           WHERE ID = ?
         `
-        connection.query(SELECT_JUST_CREATED_TAG, [result.insertId], (err, rows) => {
-          if (err) throw err;
+      connection.query(SELECT_JUST_CREATED_TAG, [result.insertId], (err, rows) => {
+        if (err) throw err;
 
-          const justAddedTag = rows[0]
-          const item = req.body.item
+        const justCreatedTag = rows[0]
+        const item = req.body.item
+
+
+        if (req.body.isForItem) {
 
           const ADD_TAGGED_ITEM = `
             INSERT INTO TBL_TAGGED_ITEM (
@@ -92,21 +95,19 @@ router.post('/new', isAuth, (req, res) => {
           `
 
           connection.query(ADD_TAGGED_ITEM, [
-            justAddedTag.ID,
+            justCreatedTag.ID,
             item.IS_PAGE ? item.PAGE_ID : item.ID,
             item.IS_PAGE,
             req.user.ID
           ], (err, result) => {
             if (err) throw err
 
-            res.send({ result, message: "Tag suggessfully added for item" })
+            res.send({ result, justCreatedTag, message: "Tag successfully added for item" })
           })
-        })
-      }
-
-      if (!req.body.isForItem) {
-        res.send({ result, message: "Tag successfully added" })
-      }
+        } else {
+          res.send({ result, justCreatedTag, message: "Tag successfully added" })
+        }
+      })
     })
 
   })
