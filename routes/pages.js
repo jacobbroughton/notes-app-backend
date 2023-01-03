@@ -10,13 +10,25 @@ const { body, check } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    const sql = `
-    SELECT * FROM TBL_PAGE
-    WHERE EFF_STATUS = 1
-    AND CREATED_BY_ID = ?
-    `;
+    const GET_PAGES = `
+      SELECT 
+        a.*, 
+        GROUP_CONCAT(b.TAG_ID SEPARATOR ',') TAGS 
+      FROM TBL_PAGE a
+      LEFT JOIN TBL_TAGGED_ITEM b
+        ON a.PAGE_ID = b.ITEM_ID
+        AND b.IS_PAGE = 1
+        AND b.EFF_STATUS = 1
+        AND b.CREATED_BY_ID = ?
+      INNER JOIN TBL_TAG c
+        ON b.TAG_ID = c.ID 
+        AND c.EFF_STATUS
+      WHERE a.EFF_STATUS = 1
+      AND a.CREATED_BY_ID = ?
+      GROUP BY a.PAGE_ID
+      `;
 
-    const pages = await query(sql, [req.user.ID])
+    const pages = await query(GET_PAGES, [req.user.ID, req.user.ID])
     res.send({ pages, message: "Successfully got pages" });
 
   } catch (err) {

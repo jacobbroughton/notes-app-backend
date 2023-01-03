@@ -10,13 +10,32 @@ const { body } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    const SELECT_FOLDERS = `
-    SELECT * FROM TBL_FOLDER
-    WHERE EFF_STATUS = 1
-    AND CREATED_BY_ID = ?
-    `;
+    // const SELECT_FOLDERS = `
+    // SELECT * FROM TBL_FOLDER
+    // WHERE EFF_STATUS = 1
+    // AND CREATED_BY_ID = ?
+    // `;
 
-    let rows = await query(SELECT_FOLDERS, [req.user.ID]);
+    const SELECT_FOLDERS = `
+    SELECT 
+    a.*, 
+    GROUP_CONCAT(b.TAG_ID SEPARATOR ',') TAGS 
+    FROM TBL_FOLDER a
+    LEFT JOIN TBL_TAGGED_ITEM b
+      ON a.ID = b.ITEM_ID
+      AND b.IS_PAGE = 0
+      AND b.EFF_STATUS = 1
+      AND b.CREATED_BY_ID = ?
+    LEFT JOIN TBL_TAG c
+      ON b.TAG_ID = c.ID 
+      AND c.EFF_STATUS
+    WHERE a.EFF_STATUS = 1
+    AND a.CREATED_BY_ID = ?
+    GROUP BY a.ID
+    `
+
+    let rows = await query(SELECT_FOLDERS, [req.user.ID, req.user.ID]);
+    console.log(rows)
     let folders = [];
     let tier = 1;
 
