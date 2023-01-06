@@ -28,7 +28,7 @@ router.get("/", isAuth, async (req, res) => {
       AND b.CREATED_BY_ID = ?
     LEFT JOIN TBL_TAG c
       ON b.TAG_ID = c.ID 
-      AND c.EFF_STATUS
+      AND c.EFF_STATUS = 1
     WHERE a.EFF_STATUS = 1
     AND a.CREATED_BY_ID = ?
     GROUP BY a.ID

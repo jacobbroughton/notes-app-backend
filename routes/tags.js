@@ -8,17 +8,6 @@ const util = require("util");
 const query = util.promisify(connection.query).bind(connection);
 const { body } = require("express-validator");
 
-async function getTags(reqUserId) {
-  const sql = `
-    SELECT * FROM TBL_TAG
-    WHERE EFF_STATUS = 1 
-    AND CREATED_BY_ID = ?
-    ORDER BY COLOR DESC
-  `
-
-  return query(sql, [reqUserId])
-}
-
 router.get('/', isAuth, async (req, res) => {
   try {
 
@@ -29,6 +18,41 @@ router.get('/', isAuth, async (req, res) => {
   } catch (e) {
     console.log(err)
   }
+})
+
+router.get("/color-options", isAuth, async (req, res) => {
+  try {
+    const GET_DEFAULT_COLORS = `
+    SELECT * 
+    FROM TBL_DEFAULT_COLOR_OPTION
+    WHERE EFF_STATUS = 1
+  `
+
+    const defaultOptions = await query(GET_DEFAULT_COLORS)
+
+    const GET_USER_CREATED_COLORS = `
+    SELECT * FROM TBL_USER_CREATED_COLOR_OPTION 
+    WHERE CREATED_BY_ID = ?
+    AND EFF_STATUS = 1
+  `
+
+    const userCreatedOptions = await query(GET_USER_CREATED_COLORS, [req.user.ID])
+
+    res.send({ result: {}, defaultOptions, userCreatedOptions, message: "Successfulyl got color options" })
+  } catch (err) {
+    console.log(err)
+  }
+})
+
+router.post('/tag-item', isAuth, async (req, res) => {
+  const result = await addTaggedItem(
+    req.body.tag.ID,
+    req.body.item.IS_PAGE ? req.body.item.PAGE_ID : req.body.item.ID,
+    req.body.item.IS_PAGE,
+    req.user.ID
+  )
+
+  res.send({ result, message: 'Tagged item successfully' })
 })
 
 router.post('/new', isAuth, async (req, res) => {
@@ -77,35 +101,12 @@ router.post('/new', isAuth, async (req, res) => {
     const itemFromRequest = req.body.item
 
     if (req.body.isForItem) {
-
-      const ADD_TAGGED_ITEM = `
-        INSERT INTO TBL_TAGGED_ITEM (
-          TAG_ID,
-          ITEM_ID,
-          IS_PAGE,
-          EFF_STATUS,
-          CREATED_DTTM,
-          MODIFIED_DTTM,
-          CREATED_BY_ID,
-          MODIFIED_BY_ID
-        ) VALUES (
-          ?,
-          ?,
-          ?,
-          1,
-          SYSDATE(),
-          NULL,
-          ?,
-          NULL
-        )
-      `
-
-      await query(ADD_TAGGED_ITEM, [
+      await addTaggedItem(
         justCreatedTag.ID,
         itemFromRequest.IS_PAGE ? itemFromRequest.PAGE_ID : itemFromRequest.ID,
         itemFromRequest.IS_PAGE,
         req.user.ID
-      ])
+      )
     }
 
     res.send({
@@ -158,6 +159,48 @@ router.post('/delete', isAuth, async (req, res) => {
   }
 
 })
+
+async function getTags(reqUserId) {
+  const sql = `
+    SELECT * FROM TBL_TAG
+    WHERE EFF_STATUS = 1 
+    AND CREATED_BY_ID = ?
+    ORDER BY COLOR DESC
+  `
+
+  return query(sql, [reqUserId])
+}
+
+async function addTaggedItem(tagId, itemId, itemIsPage, userId) {
+  const ADD_TAGGED_ITEM = `
+  INSERT INTO TBL_TAGGED_ITEM (
+    TAG_ID,
+    ITEM_ID,
+    IS_PAGE,
+    EFF_STATUS,
+    CREATED_DTTM,
+    MODIFIED_DTTM,
+    CREATED_BY_ID,
+    MODIFIED_BY_ID
+  ) VALUES (
+    ?,
+    ?,
+    ?,
+    1,
+    SYSDATE(),
+    NULL,
+    ?,
+    NULL
+  )
+`
+
+  return query(ADD_TAGGED_ITEM, [
+    tagId,
+    itemId,
+    itemIsPage,
+    userId
+  ])
+}
 
 
 module.exports = router;

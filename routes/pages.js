@@ -20,9 +20,9 @@ router.get("/", isAuth, async (req, res) => {
         AND b.IS_PAGE = 1
         AND b.EFF_STATUS = 1
         AND b.CREATED_BY_ID = ?
-      INNER JOIN TBL_TAG c
+      LEFT JOIN TBL_TAG c
         ON b.TAG_ID = c.ID 
-        AND c.EFF_STATUS
+        AND c.EFF_STATUS = 1
       WHERE a.EFF_STATUS = 1
       AND a.CREATED_BY_ID = ?
       GROUP BY a.PAGE_ID
