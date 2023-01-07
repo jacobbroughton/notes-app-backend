@@ -38,7 +38,63 @@ router.get("/color-options", isAuth, async (req, res) => {
 
     const userCreatedOptions = await query(GET_USER_CREATED_COLORS, [req.user.ID])
 
-    res.send({ result: {}, defaultOptions, userCreatedOptions, message: "Successfulyl got color options" })
+    res.send({ result: {}, defaultOptions, userCreatedOptions, message: "Successfully got color options" })
+  } catch (err) {
+    console.log(err)
+  }
+})
+
+router.post("/color-options/new", isAuth, async (req, res) => {
+  try {
+
+
+    // Check if color exists already
+    const CHECK_IF_EXISTS = `
+      SELECT * FROM TBL_USER_CREATED_COLOR_OPTION 
+      WHERE COLOR_CODE = ? AND CREATED_BY_ID = ?
+    `
+
+    // If exists, throw error
+    const existingColor = await query(CHECK_IF_EXISTS, [req.body.colorCode, req.user.ID, req.body.colorCode])
+    console.log(existingColor)
+
+    if (existingColor.length > 0) throw 'This color already exists in your custom colors list'
+
+    // Otherwise, add to TBL_USER_CREATED_COLOR_OPTION 
+    const ADD_TO_CUSTOM_COLORS = `
+      INSERT INTO TBL_USER_CREATED_COLOR_OPTION
+      (
+        COLOR_CODE,
+        EFF_STATUS,
+        CREATED_DTTM,
+        MODIFIED_DTTM, 
+        CREATED_BY_ID,
+        MODIFIED_BY_ID
+      ) VALUES (
+        ?,
+        1,
+        SYSDATE(),
+        null,
+        ?,
+        null
+      )
+    `
+
+    const result = await query(ADD_TO_CUSTOM_COLORS, [req.body.colorCode, req.user.ID])
+
+    if (!result) throw 'There was an error'
+
+    const GET_CREATED_COLOR = `
+    SELECT *
+    FROM TBL_USER_CREATED_COLOR_OPTION
+    WHERE ID = ? AND CREATED_BY_ID = ?
+  `
+
+    const [justCreatedColor] = await query(GET_CREATED_COLOR, [result.insertId, req.user.ID])
+
+    if (!justCreatedColor) throw 'Unable to fetch recently created color'
+
+    res.send({ result, justCreatedColor, message: "Successfully added custom color option" })
   } catch (err) {
     console.log(err)
   }
