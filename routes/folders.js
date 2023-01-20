@@ -10,16 +10,10 @@ const { body } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    // const SELECT_FOLDERS = `
-    // SELECT * FROM TBL_FOLDER
-    // WHERE EFF_STATUS = 1
-    // AND CREATED_BY_ID = ?
-    // `;
-
     const SELECT_FOLDERS = `
     SELECT 
     a.*, 
-    GROUP_CONCAT(b.TAG_ID SEPARATOR ',') TAGS 
+    GROUP_CONCAT(b.TAG_ID ORDER BY b.TAG_ID ASC SEPARATOR ',') TAGS 
     FROM TBL_FOLDER a
     LEFT JOIN TBL_TAGGED_ITEM b
       ON a.ID = b.ITEM_ID
@@ -35,7 +29,6 @@ router.get("/", isAuth, async (req, res) => {
     `
 
     let rows = await query(SELECT_FOLDERS, [req.user.ID, req.user.ID]);
-    console.log(rows)
     let folders = [];
     let tier = 1;
 
@@ -149,7 +142,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function deleteFolders(folderIds) {
       return await query(`
       UPDATE TBL_FOLDER
-      SET EFF_STATUS = 0
+      SET 
+        EFF_STATUS = 0,
+        MODIFIED_DTTM = SYSDATE()
       WHERE ID IN (?)
     `, [...folderIds]);
     }
@@ -157,7 +152,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function deletePages(pageIds) {
       return await query(`
       UPDATE TBL_PAGE
-      SET EFF_STATUS = 0
+      SET 
+        EFF_STATUS = 0,
+        MODIFIED_DTTM = SYSDATE()
       WHERE PAGE_ID IN (?)
     `, [...pageIds]);
     }
@@ -182,7 +179,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
     }
 
     await getNestedRows(req.body.folderId);
+    
     if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
+
     await deleteFolders(foldersToDelete);
 
     res.send({
@@ -201,11 +200,15 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 
     const sql = `
       UPDATE TBL_FOLDER
-      SET EFF_STATUS = 0
+      SET 
+        EFF_STATUS = 0,
+        MODIFIED_DTTM = SYSDATE()
       WHERE ID IN (?)
     `
 
     const result = await query(sql, [[...folderIdsForDelete]])
+
+    if (!result) throw 'There was an error deleting multiple folders'
 
     res.send({ result, deletedFolderIds: folderIdsForDelete, message: "Successfully deleted multiple folders" })
 
@@ -214,14 +217,17 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
   }
 })
 
-router.post("/rename", isAuth, (req, res) => {
+router.post("/rename", isAuth, async  (req, res) => {
   try {
     const sql = `
     UPDATE TBL_FOLDER
     SET NAME = ?
     WHERE ID = ?
     `
-    connection.query(sql, [req.body.newName, req.body.folderId])
+    const result = await query(sql, [req.body.newName, req.body.folderId])
+
+    if (!result) throw 'There was an error renaming this folder'
+
     res.send({ result, message: "Successfully renamed folder" })
 
   } catch (err) {

@@ -13,7 +13,7 @@ router.get("/", isAuth, async (req, res) => {
     const GET_PAGES = `
       SELECT 
         a.*, 
-        GROUP_CONCAT(b.TAG_ID SEPARATOR ',') TAGS 
+        GROUP_CONCAT(b.TAG_ID ORDER BY b.TAG_ID ASC SEPARATOR ',') TAGS 
       FROM TBL_PAGE a
       LEFT JOIN TBL_TAGGED_ITEM b
         ON a.PAGE_ID = b.ITEM_ID
@@ -29,6 +29,9 @@ router.get("/", isAuth, async (req, res) => {
       `;
 
     const pages = await query(GET_PAGES, [req.user.ID, req.user.ID])
+
+    pages.forEach(page => page.TAGS = page.TAGS ? page.TAGS.split(',').map(tagId => parseInt(tagId)) : [])
+    
     res.send({ pages, message: "Successfully got pages" });
 
   } catch (err) {
@@ -148,7 +151,9 @@ router.post("/delete", isAuth, async (req, res) => {
   try {
     const sql = `
     UPDATE TBL_PAGE
-    SET EFF_STATUS = 0
+    SET 
+      EFF_STATUS = 0,
+      MODIFIED_DTTM = SYSDATE()
     WHERE PAGE_ID = ?
   `;
 
@@ -167,7 +172,9 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 
     const sql = `
       UPDATE TBL_PAGE
-      SET EFF_STATUS = 0
+      SET 
+        EFF_STATUS = 0,
+        MODIFIED_DTTM = SYSDATE()
       WHERE PAGE_ID IN (?)
     `
 
