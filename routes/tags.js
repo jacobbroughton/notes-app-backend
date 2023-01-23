@@ -163,22 +163,22 @@ router.post('/tag-item', isAuth, async (req, res) => {
       if (existingMatchingTag) {
         if (existingMatchingTag.EFF_STATUS) {
           const DISABLE_ENABLED_TAGGED_ITEM = `
-        UPDATE TBL_TAGGED_ITEM
-        SET 
-          EFF_STATUS = 0,
-          MODIFIED_DTTM = SYSDATE()
-        WHERE ID = ?
-      `
+            UPDATE TBL_TAGGED_ITEM
+            SET 
+              EFF_STATUS = 0,
+              MODIFIED_DTTM = SYSDATE()
+            WHERE ID = ?
+          `
 
           result = await query(DISABLE_ENABLED_TAGGED_ITEM, [existingMatchingTag.ID])
           message = 'Tag successfully disabled'
 
         } else {
           const ENABLE_DISABLED_TAGGED_ITEM = `
-        UPDATE TBL_TAGGED_ITEM
-        SET EFF_STATUS = 1
-        WHERE ID = ?
-      `
+            UPDATE TBL_TAGGED_ITEM
+            SET EFF_STATUS = 1
+            WHERE ID = ?
+          `
 
           result = await query(ENABLE_DISABLED_TAGGED_ITEM, [existingMatchingTag.ID])
           message = 'Tag successfully enabled'
@@ -193,14 +193,17 @@ router.post('/tag-item', isAuth, async (req, res) => {
         message = 'Tag successfully added'
 
       }
+
+      res.send({ result, message: 'Successfully updated existing tagged page' })
+
     } else {
       const GET_FOLDERS = `
-    SELECT 
-    *
-    FROM TBL_FOLDER
-    WHERE EFF_STATUS = 1
-    AND CREATED_BY_ID = ?
-    `
+        SELECT 
+        *
+        FROM TBL_FOLDER
+        WHERE EFF_STATUS = 1
+        AND CREATED_BY_ID = ?
+        `
 
       let allFoldersByUser = await query(GET_FOLDERS, [req.user.ID])
 
@@ -220,12 +223,12 @@ router.post('/tag-item', isAuth, async (req, res) => {
       getChildren(req.body.item.ID)
 
       const GET_CHILD_PAGES = `
-      SELECT * 
-      FROM TBL_PAGE 
-      WHERE FOLDER_ID IN(?)
-      AND EFF_STATUS = 1
-      AND CREATED_BY_ID = ?
-    `
+        SELECT * 
+        FROM TBL_PAGE 
+        WHERE FOLDER_ID IN(?)
+        AND EFF_STATUS = 1
+        AND CREATED_BY_ID = ?
+      `
 
       let childPages = await query(GET_CHILD_PAGES, [affectedFolderIds, req.user.ID])
 
@@ -248,16 +251,18 @@ router.post('/tag-item', isAuth, async (req, res) => {
       let associatedPageTags = []
       let associatedPageTagIds = []
 
-      if (associatedFolderTags.length > 0) {
+      console.log("childPageIds", childPageIds)
+
+      if (childPageIds.length > 0) {
         const GET_ASSOCIATED_PAGE_TAGS = `
-      SELECT * FROM TBL_TAGGED_ITEM
-      WHERE TAG_ID = ?
-      AND IS_PAGE = 1
-      AND CASE ? 
-        WHEN 1 THEN ITEM_ID IN(?)
-        ELSE 1=1
-      END
-    `
+          SELECT * FROM TBL_TAGGED_ITEM
+          WHERE TAG_ID = ?
+          AND IS_PAGE = 1
+          AND CASE
+            WHEN ?=1 THEN ITEM_ID IN(?)
+            ELSE 1=1
+          END
+        `
 
         associatedPageTags = await query(GET_ASSOCIATED_PAGE_TAGS, [
           req.body.tag.ID,
@@ -265,31 +270,16 @@ router.post('/tag-item', isAuth, async (req, res) => {
           (childPageIds.length !== 0 ? childPageIds : 'null')
         ])
 
+        console.log("associatedPageTags1", associatedPageTags)
+
         associatedPageTagIds = associatedPageTags.map(taggedPage => taggedPage.ID)
       }
 
       if (existingMatchingTag && associatedFolderTags.length > 0) {
 
+        console.log("yes")
+
         const UPDATE_EXISTING_TAGGED_FOLDERS = `
-        UPDATE TBL_TAGGED_ITEM
-        SET 
-          EFF_STATUS = (
-            CASE 
-              WHEN ? = 1 THEN 1
-              ELSE 0
-            END
-          ),
-          MODIFIED_DTTM = SYSDATE()
-        WHERE ID IN(?)
-        AND IS_PAGE = 0
-      `
-
-        const result = await query(UPDATE_EXISTING_TAGGED_FOLDERS, [req.body.toggleState, associatedFolderTagIds])
-
-        if (!result) throw 'There was an issue updating existing tagged folders'
-
-        if (associatedPageTags.length > 0) {
-          const UPDATE_EXISTING_TAGGED_PAGES = `
           UPDATE TBL_TAGGED_ITEM
           SET 
             EFF_STATUS = (
@@ -300,32 +290,52 @@ router.post('/tag-item', isAuth, async (req, res) => {
             ),
             MODIFIED_DTTM = SYSDATE()
           WHERE ID IN(?)
-          AND IS_PAGE = 1
+          AND IS_PAGE = 0
         `
 
-          const result = await query(UPDATE_EXISTING_TAGGED_PAGES, [req.body.toggleState, associatedPageTagIds])
+        let result = await query(UPDATE_EXISTING_TAGGED_FOLDERS, [req.body.toggleState, associatedFolderTagIds])
+
+        if (!result) throw 'There was an issue updating existing tagged folders'
+
+        if (associatedPageTags.length > 0) {
+          const UPDATE_EXISTING_TAGGED_PAGES = `
+            UPDATE TBL_TAGGED_ITEM
+            SET 
+              EFF_STATUS = (
+                CASE 
+                  WHEN ? = 1 THEN 1
+                  ELSE 0
+                END
+              ),
+              MODIFIED_DTTM = SYSDATE()
+            WHERE ID IN(?)
+            AND IS_PAGE = 1
+          `
+
+          result = await query(UPDATE_EXISTING_TAGGED_PAGES, [req.body.toggleState, associatedPageTagIds])
 
           if (!result) throw 'There was an issue updating existing tagged pages'
         }
 
+        res.send({ result, message: 'Successfully updated existing tagged items' })
+
       } else {
 
-        console.log('affectedFolderIds', affectedFolderIds)
-        console.log('---------------')
-        console.log('associatedFolderTags', associatedFolderTagIds)
+        console.log("associatedPageTags", associatedPageTags)
+
 
         const INSERT_NEW_TAGGED_ITEMS = `
-        INSERT INTO TBL_TAGGED_ITEM (
-          TAG_ID,
-          ITEM_ID,
-          IS_PAGE,
-          EFF_STATUS,
-          CREATED_DTTM,
-          MODIFIED_DTTM,
-          CREATED_BY_ID,
-          MODIFIED_BY_ID
-        ) VALUES ?
-      `
+          INSERT INTO TBL_TAGGED_ITEM (
+            TAG_ID,
+            ITEM_ID,
+            IS_PAGE,
+            EFF_STATUS,
+            CREATED_DTTM,
+            MODIFIED_DTTM,
+            CREATED_BY_ID,
+            MODIFIED_BY_ID
+          ) VALUES ?
+        `
 
         const SYSDATE = { toSqlString: function () { return 'SYSDATE()'; } }
 
@@ -345,11 +355,11 @@ router.post('/tag-item', isAuth, async (req, res) => {
 
         if (!result) throw 'There was an issue adding new tagged items'
 
+        res.send({ result, message: 'Successfully added new tagged items' })
       }
     }
-    res.send({ result: {}, message: 'hopefully successful idk' })
   } catch (error) {
-
+    console.log(error)
   }
 
 })
