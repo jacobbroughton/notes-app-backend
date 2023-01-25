@@ -203,4 +203,24 @@ router.post("/rename", isAuth, async (req, res) => {
 
 });
 
+router.post("/favorite", isAuth, async (req, res) => {
+  try {
+    const sql = `
+      UPDATE TBL_PAGE
+      SET IS_FAVORITE = (
+        CASE 
+          WHEN ? = 1 THEN 1
+          ELSE 0
+        END
+      )
+      WHERE PAGE_ID = ?
+    `
+
+    const result = await query(sql, [req.body.favoriteStatus, req.body.pageId])
+    res.send({ result, message: "Successfully favorited page" })
+  } catch (err) {
+    console.log(err)
+  }
+})
+
 module.exports = router;
