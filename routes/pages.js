@@ -86,12 +86,12 @@ router.post("/new", isAuth, async (req, res) => {
 
 router.post("/edit", isAuth, async (req, res) => {
   try {
-    if (!req.body.title) throw "Title cannot be empty";
+    if (!req.body.name) throw "Title cannot be empty";
 
     const UPDATE_PAGE = `
       UPDATE TBL_PAGE
       SET 
-      TITLE = ?,
+      NAME = ?,
       BODY = ?,
       MODIFIED_DTTM = SYSDATE()
       WHERE PAGE_ID = ?
@@ -100,7 +100,7 @@ router.post("/edit", isAuth, async (req, res) => {
     const result = await query(
       UPDATE_PAGE,
       [
-        req.body.title.replaceAll("'", "''"),
+        req.body.name.replaceAll("'", "''"),
         req.body.body?.replaceAll("'", "''"),
         req.body.pageId,
       ])
