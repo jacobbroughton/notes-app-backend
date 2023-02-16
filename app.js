@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === "production") {
 
 app.use(
   cors({
-    origin,
+    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
     credentials: true,
   })
 )
