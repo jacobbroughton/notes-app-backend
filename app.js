@@ -29,19 +29,21 @@ if (process.env.NODE_ENV === "production") {
   origin = "http://localhost:3000"
 }
 
-app.use(
-  cors({
-    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
-    credentials: true,
-  })
-)
 app.use(express.json()); // parsing the incoming data
 app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 app.use(cookieParser());
 require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
-app.use(require("./routes"));
+
+app.use(
+  cors({
+    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
+    credentials: true,
+  })
+)
+
+app.use("/", require("./routes"));
 app.use('/folders', require("./routes/folders"));
 app.use('/pages', require("./routes/pages"));
 app.use('/tags', require("./routes/tags"));
