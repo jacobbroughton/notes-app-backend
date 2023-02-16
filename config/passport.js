@@ -14,11 +14,22 @@ const verifyCallback = (username, password, done) => {
   try {
     let user; // Find user in db here
 
-    connection.query(
+    let sql
+
+    if (process.env.NODE_ENV === 'production') {
+      sql = `
+        SELECT * FROM notes-app.TBL_USER
+        WHERE USERNAME = ?
       `
-      SELECT * FROM notesApp.TBL_USER
-      WHERE USERNAME = ?
-    `,
+    } else {
+      sql = `
+        SELECT * FROM notesApp.TBL_USER
+        WHERE USERNAME = ?
+      `
+    }
+
+    connection.query(
+      sql,
       [username],
       (err, result, fields) => {
         if (err) throw err;
@@ -61,11 +72,23 @@ passport.serializeUser((user, done) => {
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
-  connection.query(
+
+  let sql
+
+  if (process.env.NODE_ENV === 'production') {
+    sql = `
+      SELECT * FROM notes-app.TBL_USER
+      WHERE ID = ?
     `
-    SELECT * FROM notesApp.TBL_USER
-    WHERE ID = ?
-  `,
+  } else {
+    sql = `
+      SELECT * FROM notesApp.TBL_USER
+      WHERE ID = ?
+    `
+  }
+
+  connection.query(
+    sql,
     [userId],
     (err, result) => {
       if (err) done(err);
