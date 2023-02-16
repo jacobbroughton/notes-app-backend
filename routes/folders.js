@@ -60,7 +60,6 @@ router.get("/", isAuth, async (req, res) => {
 
       folders.forEach((folder, index) => {
         if (folder.ID === parentFolder.ID) indexToAddChildren = index;
-        // if ()  folder.TIER = tier
       });
 
       folders.splice(indexToAddChildren, 0, ...children);
@@ -71,6 +70,7 @@ router.get("/", isAuth, async (req, res) => {
     rootFolders.forEach((folder) => determineChildren(folder, rows, 2));
 
     folders.forEach((folder, index) => {
+      folder.TAGS = folder.TAGS ? folder.TAGS.split(',').map(tagId => parseInt(tagId)) : []
       folder.ORDER = index + 1;
     });
 
@@ -179,7 +179,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
     }
 
     await getNestedRows(req.body.folderId);
-    
+
     if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
 
     await deleteFolders(foldersToDelete);
@@ -217,7 +217,7 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
   }
 })
 
-router.post("/rename", isAuth, async  (req, res) => {
+router.post("/rename", isAuth, async (req, res) => {
   try {
     const sql = `
     UPDATE TBL_FOLDER

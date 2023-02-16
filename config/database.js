@@ -3,12 +3,15 @@ const session = require("express-session");
 const MySQLStore = require("express-mysql-session")(session);
 require("dotenv").config();
 
+console.log(process.env)
+
+
 const dbOptions = {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host:  process.env.DB_HOST_DEV,
+  port: process.env.DB_PORT_DEV,
+  user: process.env.DB_USER_DEV,
+  password: process.env.DB_PASSWORD_DEV,
+  database: process.env.DB_NAME_DEV,
 };
 
 const connection = mysql.createConnection(dbOptions);
