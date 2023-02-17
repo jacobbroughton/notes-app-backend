@@ -1,7 +1,7 @@
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const validatePassword = require("../lib/passwordUtils").validatePassword;
-const connection = require("./database").connection;
+const pool = require("./database").pool;
 
 // In case you dont want 'username' and 'password'
 // const customFields = {
