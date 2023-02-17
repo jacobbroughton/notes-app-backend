@@ -36,7 +36,8 @@ router.post("/register", (req, res) => {
     `
   }
 
-  console.log(req.body)
+  console.log(sql.replace('?', "'", req.body.username, "'"))
+
 
   connection.query(
     sql,
