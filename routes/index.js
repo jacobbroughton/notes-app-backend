@@ -26,7 +26,7 @@ router.post("/register", (req, res) => {
 
   if (process.env.NODE_ENV === 'production') {
     sql = `
-      SELECT * FROM notes-app.TBL_USER
+      SELECT * FROM \`notes-app\`.TBL_USER
       WHERE USERNAME = ?
     `
   } else {
@@ -36,7 +36,7 @@ router.post("/register", (req, res) => {
     `
   }
 
-  console.log(sql)
+  console.log(req.body)
 
   connection.query(
     sql,
@@ -58,7 +58,7 @@ router.post("/register", (req, res) => {
 
       if (process.env.NODE_ENV === 'production') {
         sql = `
-        INSERT INTO notes-app.TBL_USER (
+        INSERT INTO \`notes-app\`.TBL_USER (
             USERNAME,
             HASH,
             SALT,
