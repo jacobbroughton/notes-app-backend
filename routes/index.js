@@ -22,88 +22,93 @@ router.post(
 
 router.post("/register", (req, res) => {
 
-  let sql
+  try {
+    let sql
 
-  if (process.env.NODE_ENV === 'production') {
-    sql = `
-      SELECT * FROM \`notes-app\`.TBL_USER
-      WHERE USERNAME = ?
-    `
-  } else {
-    sql = `
-      SELECT * FROM notesApp.TBL_USER
-      WHERE USERNAME = ?
-    `
-  }
-
-  console.log(sql.replace('?', `', ${req.body.username}, '`))
-
-
-  connection.query(
-    sql,
-    [req.body.username],
-    (err, result, fields) => {
-      if (err) throw err;
-
-      if (result.length) {
-        res.status(400).send({ message: "User already exists" });
-        return;
-      }
-
-      const saltHash = genPassword(req.body.password);
-
-      const salt = saltHash.salt;
-      const hash = saltHash.hash;
-
-      let sql
-
-      if (process.env.NODE_ENV === 'production') {
-        sql = `
-        INSERT INTO \`notes-app\`.TBL_USER (
-            USERNAME,
-            HASH,
-            SALT,
-            CREATED_DTTM,
-            MODIFIED_DTTM
-        ) VALUES (
-            ?,
-            ?,
-            ?,
-            SYSDATE(), 
-            null
-        )
-    `
-      } else {
-        sql = `
-          INSERT INTO notesApp.TBL_USER (
-              USERNAME,
-              HASH,
-              SALT,
-              CREATED_DTTM,
-              MODIFIED_DTTM
-          ) VALUES (
-              ?,
-              ?,
-              ?,
-              SYSDATE(), 
-              null
-          )
-      `
-      }
-
-      console.log(sql.replace('?', "'", req.body.username, "'"))
-
-      // Save the user to the database
-      connection.query(
-        sql,
-        [req.body.username, hash, salt],
-        (err, result, fields) => {
-          if (err) throw err;
-          res.send({ result, message: "Successfully registered" });
-        }
-      );
+    if (process.env.NODE_ENV === 'production') {
+      sql = `
+          SELECT * FROM \`notes-app\`.TBL_USER
+          WHERE USERNAME = ?
+        `
+    } else {
+      sql = `
+          SELECT * FROM notesApp.TBL_USER
+          WHERE USERNAME = ?
+        `
     }
-  );
+
+    console.log(sql.replace('?', `'${req.body.username}'`))
+
+
+    connection.query(
+      sql,
+      [req.body.username],
+      (err, result, fields) => {
+        if (err) throw err;
+
+        if (result.length) {
+          res.status(400).send({ message: "User already exists" });
+          return;
+        }
+
+        const saltHash = genPassword(req.body.password);
+
+        const salt = saltHash.salt;
+        const hash = saltHash.hash;
+
+        let sql
+
+        if (process.env.NODE_ENV === 'production') {
+          sql = `
+            INSERT INTO \`notes-app\`.TBL_USER (
+                USERNAME,
+                HASH,
+                SALT,
+                CREATED_DTTM,
+                MODIFIED_DTTM
+            ) VALUES (
+                ?,
+                ?,
+                ?,
+                SYSDATE(), 
+                null
+            )
+        `
+        } else {
+          sql = `
+              INSERT INTO notesApp.TBL_USER (
+                  USERNAME,
+                  HASH,
+                  SALT,
+                  CREATED_DTTM,
+                  MODIFIED_DTTM
+              ) VALUES (
+                  ?,
+                  ?,
+                  ?,
+                  SYSDATE(), 
+                  null
+              )
+          `
+        }
+
+        console.log(sql.replace('?', "'", req.body.username, "'"))
+
+        // Save the user to the database
+        connection.query(
+          sql,
+          [req.body.username, hash, salt],
+          (err, result, fields) => {
+            if (err) throw err;
+            res.send({ result, message: "Successfully registered" });
+          }
+        );
+      }
+    );
+
+  } catch (error) {
+    console.log(error)
+  }
 });
 
 router.get("/protected-route", isAuth, (req, res) => {
