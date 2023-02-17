@@ -10,6 +10,13 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(
+  cors({
+    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
+    credentials: true,
+  })
+)
+
+app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET,
@@ -35,13 +42,6 @@ app.use(cookieParser());
 require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
-
-app.use(
-  cors({
-    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
-    credentials: true,
-  })
-)
 
 app.use("/", require("./routes"));
 app.use('/folders', require("./routes/folders"));
