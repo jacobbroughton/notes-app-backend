@@ -5,7 +5,7 @@ const connection = require("../config/database").connection;
 const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
 const util = require("util");
-const query = util.promisify(connection.query).bind(connection);
+const query = util.promisify(pool.query).bind(connection);
 const { body, check } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {

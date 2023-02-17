@@ -40,7 +40,7 @@ router.post("/register", (req, res) => {
     console.log(sql.replace('?', `'${req.body.username}'`))
 
 
-    connection.query(
+    pool.query(
       sql,
       [req.body.username],
       (err, result, fields) => {
@@ -95,7 +95,7 @@ router.post("/register", (req, res) => {
         console.log(sql.replace('?', "'", req.body.username, "'"))
 
         // Save the user to the database
-        connection.query(
+        pool.query(
           sql,
           [req.body.username, hash, salt],
           (err, result, fields) => {

@@ -28,7 +28,7 @@ const verifyCallback = (username, password, done) => {
       `
     }
 
-    connection.query(
+    pool.query(
       sql,
       [username],
       (err, result, fields) => {
@@ -87,7 +87,7 @@ passport.deserializeUser((userId, done) => {
     `
   }
 
-  connection.query(
+  pool.query(
     sql,
     [userId],
     (err, result) => {

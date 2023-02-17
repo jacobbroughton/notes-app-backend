@@ -4,6 +4,7 @@ const MySQLStore = require("express-mysql-session")(session);
 require("dotenv").config();
 
 const dbOptions = {
+  connectionLimit: 10,
   host: process.env.NODE_ENV === 'development' ? process.env.DB_HOST_DEV : process.env.DB_HOST_PROD,
   port: process.env.NODE_ENV === 'development' ? process.env.DB_PORT_DEV : process.env.DB_PORT_PROD,
   user: process.env.NODE_ENV === 'development' ? process.env.DB_USER_DEV : process.env.DB_USER_PROD,
@@ -11,10 +12,10 @@ const dbOptions = {
   database: process.env.NODE_ENV === 'development' ? process.env.DB_NAME_DEV : process.env.DB_NAME_PROD,
 };
 
-const connection = mysql.createConnection(dbOptions);
-const sessionStore = new MySQLStore(dbOptions, connection);
+const pool = mysql.createPool(dbOptions);
+const sessionStore = new MySQLStore(dbOptions, pool);
 
 module.exports = {
-  connection,
+  pool,
   sessionStore,
 };
