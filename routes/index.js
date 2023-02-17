@@ -90,6 +90,8 @@ router.post("/register", (req, res) => {
       `
       }
 
+      console.log(sql.replace('?', "'", req.body.username, "'"))
+
       // Save the user to the database
       connection.query(
         sql,
