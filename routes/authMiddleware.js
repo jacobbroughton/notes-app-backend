@@ -9,7 +9,6 @@ module.exports.isAuth = function (req, res, next) {
         user: req.user,
         session: req.session,
         req,
-        res,
       });
   }
 };
