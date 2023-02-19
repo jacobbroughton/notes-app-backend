@@ -8,6 +8,7 @@ module.exports.isAuth = function (req, res, next) {
         message: "You are not authorized",
         user: req.user,
         session: req.session,
+        req,
       });
   }
 };
