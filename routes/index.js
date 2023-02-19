@@ -37,9 +37,6 @@ router.post("/register", (req, res) => {
         `
     }
 
-    console.log(sql.replace('?', `'${req.body.username}'`))
-
-
     pool.query(
       sql,
       [req.body.username],
@@ -91,8 +88,6 @@ router.post("/register", (req, res) => {
               )
           `
         }
-
-        console.log(sql.replace('?', "'", req.body.username, "'"))
 
         // Save the user to the database
         pool.query(

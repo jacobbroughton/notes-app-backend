@@ -24,7 +24,7 @@ app.use(
     resave: false, // enables the session to be stored back to the session store, even if the session was never modified during the request.
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // one day
-      secure: false,
+      secure: process.env.NODE_ENV === 'production' ? true : false,
     },
   })
 );
