@@ -10,6 +10,7 @@ const dbOptions = {
   user: process.env.NODE_ENV === 'development' ? process.env.DB_USER_DEV : process.env.DB_USER_PROD,
   password: process.env.NODE_ENV === 'development' ? process.env.DB_PASSWORD_DEV : process.env.DB_PASSWORD_PROD,
   database: process.env.NODE_ENV === 'development' ? process.env.DB_NAME_DEV : process.env.DB_NAME_PROD,
+  ssl: { rejectUnauthorized: true }
 };
 
 const pool = mysql.createPool(dbOptions);
