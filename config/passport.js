@@ -18,7 +18,7 @@ const verifyCallback = (username, password, done) => {
 
     if (process.env.NODE_ENV === 'production') {
       sql = `
-        SELECT * FROM notes-app.TBL_USER
+        SELECT * FROM \`notes-app\`.TBL_USER
         WHERE USERNAME = ?
       `
     } else {
@@ -77,7 +77,7 @@ passport.deserializeUser((userId, done) => {
 
   if (process.env.NODE_ENV === 'production') {
     sql = `
-      SELECT * FROM notes-app.TBL_USER
+      SELECT * FROM \`notes-app\`.TBL_USER
       WHERE ID = ?
     `
   } else {
