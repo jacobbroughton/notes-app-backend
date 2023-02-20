@@ -26,7 +26,7 @@ app.use(
       maxAge: 1000 * 60 * 60 * 24, // one day
       secure: process.env.NODE_ENV === 'production' ? true : false,
     },
-    // httpOnly: true
+    httpOnly: true
   })
 );
 
