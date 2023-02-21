@@ -18,10 +18,17 @@ router.post(
   //   successRedirect: "/",
   //   failureRedirect: "/login-failure",
   // })
-  passport.authenticate('local', { failureRedirect: '/login' }),
-  function (req, res) {
-    console.log({req, res})
-    res.redirect('/');
+  function (req, res, next) {
+    passport.authenticate("local", function (err, user, info) {
+
+      // handle succes or failure
+      if (err) throw err
+      if (!user) {
+        res.redirect("/login-failure")
+        return
+      }
+      res.redirect('/')
+    })(req, res, next);
   });
 
 router.post("/register", (req, res) => {
