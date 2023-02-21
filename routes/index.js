@@ -31,7 +31,10 @@ router.post(
         }
 
         req.logIn(user, function (err) {
+          console.log(userFromReqLogIn, user)
+          console.log(req.session)
           if (err) {
+            console.log(err)
             return next(err);
           }
 
