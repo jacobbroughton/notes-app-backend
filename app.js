@@ -16,6 +16,18 @@ app.use(
   })
 )
 
+
+let origin
+if (process.env.NODE_ENV === "production") {
+  origin = "https://notes-app-jb.netlify.app"
+} else {
+  origin = "http://localhost:3000"
+}
+
+app.use(cookieParser());
+app.use(express.json()); // parsing the incoming data
+app.use(express.urlencoded({ extended: true })); // parsing the incoming data
+require("./config/passport"); // pretty much includes the passport.use()
 app.use(
   session({
     store: sessionStore,
@@ -29,18 +41,6 @@ app.use(
     httpOnly: true
   })
 );
-
-let origin
-if (process.env.NODE_ENV === "production") {
-  origin = "https://notes-app-jb.netlify.app"
-} else {
-  origin = "http://localhost:3000"
-}
-
-app.use(express.json()); // parsing the incoming data
-app.use(express.urlencoded({ extended: true })); // parsing the incoming data
-app.use(cookieParser());
-require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
 
