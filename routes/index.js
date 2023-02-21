@@ -27,6 +27,7 @@ router.post(
         res.redirect("/login-failure")
         return
       }
+      console.log({user})
       res.redirect('/')
     })(req, res, next);
   });
