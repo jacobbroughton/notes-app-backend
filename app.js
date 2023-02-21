@@ -34,10 +34,10 @@ app.use(
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false, // allows any uninitialized session to be sent to the store. When a session is created but not modified, it is referred to as uninitialized.
     resave: false, // enables the session to be stored back to the session store, even if the session was never modified during the request.
-    // cookie: {
-    //   maxAge: 1000 * 60 * 60 * 24, // one day
-    //   secure: process.env.NODE_ENV === 'production' ? true : false,
-    // },
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // one day
+      secure: process.env.NODE_ENV === 'production' ? true : false,
+    },
     httpOnly: true
   })
 );

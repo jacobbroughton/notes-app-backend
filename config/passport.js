@@ -12,7 +12,6 @@ const pool = require("./database").pool;
 // done is a function that i'll eventually pass the results of the authentication to
 const verifyCallback = (username, password, done) => {
   try {
-    let user; // Find user in db here
 
     let sql
 
@@ -34,7 +33,7 @@ const verifyCallback = (username, password, done) => {
       (err, result, fields) => {
         if (err) throw err;
 
-        user = result[0];
+        let user = result[0];
 
         if (!user) {
           return done(null, false);
@@ -72,6 +71,7 @@ passport.serializeUser((user, done) => {
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
+  console.log({ userId })
 
   let sql
 
@@ -91,7 +91,10 @@ passport.deserializeUser((userId, done) => {
     sql,
     [userId],
     (err, result) => {
-      if (err) done(err);
+      if (err) {
+        console.log(err)
+        done(err, false, { error: err })
+      };
 
       const user = result[0];
 
