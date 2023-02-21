@@ -66,7 +66,7 @@ passport.use(strategy);
 passport.serializeUser((user, done) => {
   // The user id argument is saved in the session and is later used
   // to retrieve the whole object via the deserializeUser function.
-  console.log({ userFromSerializeUser })
+  console.log({ userFromSerializeUse: user })
   done(null, user.ID);
 });
 
