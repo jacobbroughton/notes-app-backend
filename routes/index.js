@@ -14,11 +14,20 @@ router.get("/", isAuth, (req, res) => {
 // Only continues past to the callback if authenticated with a user
 router.post(
   "/login",
-  passport.authenticate("local", {
-    successRedirect: "/",
-    failureRedirect: "/login-failure",
-  })
-);
+  // passport.authenticate("local", {
+  //   successRedirect: "/",
+  //   failureRedirect: "/login-failure",
+  // })
+  function (req, res, next) {
+    passport.authenticate("local", function (err, user, info) {
+
+      // handle succes or failure
+      if (err) console.log({ err })
+      if (user) console.log({ user })
+      if (info) console.log({ info })
+
+    })(req, res, next);
+  });
 
 router.post("/register", (req, res) => {
 
