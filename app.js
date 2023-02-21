@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const session = require("express-session");
 require("dotenv").config();
+require("./config/passport"); // pretty much includes the passport.use()
 const { sessionStore } = require("./config/database.js");
 
 const app = express();
@@ -27,7 +28,6 @@ if (process.env.NODE_ENV === "production") {
 app.use(cookieParser());
 app.use(express.json()); // parsing the incoming data
 app.use(express.urlencoded({ extended: true })); // parsing the incoming data
-require("./config/passport"); // pretty much includes the passport.use()
 app.use(
   session({
     store: sessionStore,

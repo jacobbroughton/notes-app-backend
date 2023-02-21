@@ -14,23 +14,26 @@ router.get("/", isAuth, (req, res) => {
 // Only continues past to the callback if authenticated with a user
 router.post(
   "/login",
-  // passport.authenticate("local", {
-  //   successRedirect: "/",
-  //   failureRedirect: "/login-failure",
-  // })
-  function (req, res, next) {
-    passport.authenticate("local", function (err, user, info) {
+  passport.authenticate("local", {
+    successRedirect: "/",
+    failureRedirect: "/login-failure",
+  })
+  // function (req, res, next) {
+  //   passport.authenticate("local", function (err, user, info) {
 
-      // handle succes or failure
-      if (err) throw err
-      if (!user) {
-        res.redirect("/login-failure")
-        return
-      }
-      console.log({user})
-      res.redirect('/')
-    })(req, res, next);
-  });
+  //     if (err) throw err
+
+  //     if (!user) {
+  //       res.redirect("/login-failure")
+  //       return
+  //     }
+
+  //     req.user = user
+
+  //     res.redirect('/')
+  //   })(req, res, next);
+  // }
+);
 
 router.post("/register", (req, res) => {
 
