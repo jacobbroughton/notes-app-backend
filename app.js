@@ -24,9 +24,9 @@ if (process.env.NODE_ENV === "production") {
   origin = "http://localhost:3000"
 }
 
-app.use(cookieParser());
 app.use(express.json()); // parsing the incoming data
 app.use(express.urlencoded({ extended: false })); // parsing the incoming data
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(
   session({
     store: sessionStore,
