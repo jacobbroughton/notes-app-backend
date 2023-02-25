@@ -9,54 +9,48 @@ const pool = require("./database").pool;
 //   passwordField: "pw",
 // };
 
-// done is a function that i'll eventually pass the results of the authentication to
-const verifyCallback = (username, password, done) => {
-  try {
-
-    let sql
-
-    if (process.env.NODE_ENV === 'production') {
-      sql = `
-        SELECT * FROM \`notes-app\`.TBL_USER
-        WHERE USERNAME = ?
-      `
-    } else {
-      sql = `
-        SELECT * FROM notesApp.TBL_USER
-        WHERE USERNAME = ?
-      `
-    }
-
-    pool.query(
-      sql,
-      [username],
-      (err, result, fields) => {
-        if (err) throw err;
-
-        let user = result[0];
-
-        if (!user) {
-          return done(null, false);
-        }
-
-        const isValid = validatePassword(password, user.HASH, user.SALT);
-
-        if (isValid) {
-          return done(null, user);
-        } else {
-          console.log("Incorrect password");
-          return done(null, false);
-        }
-      }
-    );
-  } catch (err) {
-    done(err);
-  }
-};
 
 const strategy = new LocalStrategy(
   { usernameField: "username", passwordField: "password" },
-  verifyCallback
+  (username, password, done) => {
+    try {
+
+      let sql
+
+      if (process.env.NODE_ENV === 'production') {
+        sql = `
+          SELECT * FROM \`notes-app\`.TBL_USER
+          WHERE USERNAME = ?
+        `
+      } else {
+        sql = `
+          SELECT * FROM notesApp.TBL_USER
+          WHERE USERNAME = ?
+        `
+      }
+
+      pool.query(
+        sql,
+        [username],
+        (err, rows) => {
+          if (err) throw err;
+          if (!rows[0]) return done(null, false);
+
+          const isValid = validatePassword(password, rows[0].HASH, rows[0].SALT);
+
+          if (isValid) {
+            return done(null, rows[0]);
+          }
+          return done(null, false, {
+            message: 'Username or password is incorrect'
+          });
+
+        }
+      );
+    } catch (err) {
+      done(err);
+    }
+  }
 );
 
 passport.use(strategy);
@@ -66,13 +60,13 @@ passport.use(strategy);
 passport.serializeUser((user, done) => {
   // The user id argument is saved in the session and is later used
   // to retrieve the whole object via the deserializeUser function.
-  console.log({ serializeUser: user })
+  console.log('Serializing user', { user })
   done(null, user.ID);
 });
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
-  // console.log({ userId })
+  console.log('deserializingUser', { userId })
 
   let sql
 

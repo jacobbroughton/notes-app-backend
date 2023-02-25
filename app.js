@@ -40,9 +40,10 @@ app.use(
     httpOnly: true
   })
 );
+
+require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
-require("./config/passport"); // pretty much includes the passport.use()
 
 app.use("/", require("./routes"));
 app.use('/folders', require("./routes/folders"));
