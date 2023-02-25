@@ -106,8 +106,7 @@ router.post("/color-options/new", isAuth, async (req, res) => {
 router.post("/color-options/delete", isAuth, async (req, res) => {
   try {
     console.log(req.body)
-    throw 'Test error, not real'
-    return
+
     const DISABLE_COLOR = `
     UPDATE TBL_USER_CREATED_COLOR_åOPTION
     SET 
