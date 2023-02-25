@@ -12,7 +12,8 @@ router.get("/", isAuth, (req, res) => {
 
 // passport.authenticate basically gives 'username' and 'password' and executes the verifyCallback function
 // Only continues past to the callback if authenticated with a user
-app.post('/login', (req, res, next) => {
+
+router.post('/login', (req, res, next) => {
   passport.authenticate('local', (err, theUser, failureDetails) => {
     if (err) {
       res.status(500).json({ message: 'Something went wrong authenticating user' });
