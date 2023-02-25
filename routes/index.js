@@ -6,7 +6,7 @@ const isAuth = require("./authMiddleware").isAuth;
 const isAdmin = require("./authMiddleware").isAdmin;
 const { body } = require("express-validator");
 
-router.get("/", (req, res) => {
+router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
 
@@ -15,11 +15,12 @@ router.get("/", (req, res) => {
 router.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/",
+    successRedirect: '/',
     failureRedirect: "/failure",
-    failureFlash: true
   }),
-  // If this function is called, auth was successful
+  (err, req, res, next) => {
+    if (err) next(err)
+  }
 )
 
 

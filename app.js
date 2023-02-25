@@ -7,7 +7,9 @@ require("dotenv").config();
 const { sessionStore } = require("./config/database.js");
 
 const app = express();
-const port = process.env.PORT || 3001;
+
+app.use(express.json()); // parsing the incoming data
+app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 
 app.use(
   cors({
@@ -24,9 +26,8 @@ if (process.env.NODE_ENV === "production") {
   origin = "http://localhost:3000"
 }
 
-app.use(express.json()); // parsing the incoming data
-app.use(express.urlencoded({ extended: false })); // parsing the incoming data
 app.use(cookieParser(process.env.SESSION_SECRET));
+
 app.use(
   session({
     store: sessionStore,
@@ -35,11 +36,9 @@ app.use(
     resave: false, // enables the session to be stored back to the session store, even if the session was never modified during the request.
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // one day
-      secure: false
     },
   })
 );
-
 require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
@@ -48,6 +47,8 @@ app.use("/", require("./routes"));
 app.use('/folders', require("./routes/folders"));
 app.use('/pages', require("./routes/pages"));
 app.use('/tags', require("./routes/tags"));
+
+const port = process.env.PORT || 3001;
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
