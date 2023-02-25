@@ -8,7 +8,6 @@ const { body } = require("express-validator");
 
 router.get("/", passport.authenticate("local", {
   failureRedirect: "/failure",
-  failureFlash: true
 }), isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
