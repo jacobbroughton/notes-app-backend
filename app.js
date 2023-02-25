@@ -4,7 +4,6 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const session = require("express-session");
 require("dotenv").config();
-require("./config/passport"); // pretty much includes the passport.use()
 const { sessionStore } = require("./config/database.js");
 
 const app = express();
@@ -43,6 +42,7 @@ app.use(
 );
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
+require("./config/passport"); // pretty much includes the passport.use()
 
 app.use("/", require("./routes"));
 app.use('/folders', require("./routes/folders"));

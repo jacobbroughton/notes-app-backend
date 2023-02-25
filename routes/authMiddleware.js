@@ -1,5 +1,4 @@
 module.exports.isAuth = function (req, res, next) {
-  console.log(req)
   if (req.user) {
     next(); // moves on
   } else {
