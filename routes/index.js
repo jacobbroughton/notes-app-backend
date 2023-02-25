@@ -23,7 +23,7 @@ router.post(
       res.setHeader('Access-Control-Allow-Credentials', 'true')
       const user = req.user;
 
-
+      console.log(req)
       return res.status(200).json({
         user
       });
