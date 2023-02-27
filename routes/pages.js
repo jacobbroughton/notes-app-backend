@@ -102,8 +102,8 @@ router.post("/edit", isAuth, async (req, res) => {
     const result = await query(
       UPDATE_PAGE,
       [
-        req.body.name.replaceAll("'", "''"),
-        req.body.body?.replaceAll("'", "''"),
+        req.body.name.replace(/'/g, "''"),
+        req.body.body?.replace(/'/g, "''"),
         req.body.pageId,
       ])
 
