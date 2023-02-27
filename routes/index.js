@@ -16,7 +16,7 @@ router.post(
   "/login",
   passport.authenticate("local", {
     successRedirect: '/',
-    failureRedirect: "/failure",
+    failureRedirect: '/'
   }),
   (err, req, res, next) => {
     if (err) next(err)

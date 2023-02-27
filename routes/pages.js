@@ -87,6 +87,7 @@ router.post("/new", isAuth, async (req, res) => {
 router.post("/edit", isAuth, async (req, res) => {
   try {
     if (!req.body.name) throw "Title cannot be empty";
+    console.log(req.body)
 
     const UPDATE_PAGE = `
       UPDATE TBL_PAGE
