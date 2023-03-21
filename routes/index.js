@@ -16,10 +16,11 @@ router.post(
   "/login",
   passport.authenticate("local", {
     successRedirect: '/',
-    failureRedirect: '/'
+    failureRedirect: '/login-failure'
   }),
   (err, req, res, next) => {
     if (err) next(err)
+    console.log("Hello")
   }
 )
 
@@ -121,9 +122,14 @@ router.get("/admin-route", isAdmin, (req, res) => {
 
 router.get("/login-failure", (req, res) => {
   res.send({
+    code: 2,
     message: "Login failed, please check your username and password and try again.",
-    user: req.user,
+    user: null,
   });
+  // res.status({
+  //   message: "Login failed, please check your username and password and try again.",
+  //   user: req.user,
+  // });
 });
 
 // Removes req.session.passport.user property from session
