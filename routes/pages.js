@@ -31,7 +31,7 @@ router.get("/", isAuth, async (req, res) => {
     const pages = await query(GET_PAGES, [req.user.ID, req.user.ID])
 
     pages.forEach(page => page.TAGS = page.TAGS ? page.TAGS.split(',').map(tagId => parseInt(tagId)) : [])
-    
+
     res.send({ pages, message: "Successfully got pages" });
 
   } catch (err) {
@@ -69,7 +69,7 @@ router.post("/new", isAuth, async (req, res) => {
       req.body.parentFolderId,
       req.body.newPageName,
       req.body.newPageName,
-      req.body.newPageBody || "",
+      req.body.newPageBody || '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}',
       req.user.ID,
     ]
     );
