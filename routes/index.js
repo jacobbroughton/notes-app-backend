@@ -37,8 +37,8 @@ router.post("/login", (req, res, next) => {
           // throw err
         } else {
           // res.send({ status: 200, user, message: "Successfully Authenticated" })
-          console.log({user})
-          console.log({info})
+          // console.log({user})
+          // console.log({info})
           res.redirect('/')
         }
       })

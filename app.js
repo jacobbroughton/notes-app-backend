@@ -13,12 +13,12 @@ app.use(
   })
 )
 
-app.use(express.json()); // parsing the incoming data
-app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 
 const passport = require("passport");
 const { sessionStore } = require("./config/database.js");
 app.use(cookieParser(process.env.SESSION_SECRET));
+app.use(express.json()); // parsing the incoming data
+app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 app.use(
   session({
 
