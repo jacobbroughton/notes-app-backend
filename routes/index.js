@@ -11,6 +11,17 @@ router.get("/", isAuth, (req, res) => {
 
 // passport.authenticate basically gives 'username' and 'password' and executes the verifyCallback function
 // Only continues past to the callback if authenticated with a user
+// router.post(
+//   "/login",
+//   passport.authenticate("local", {
+//     successRedirect: '/',
+//     failureRedirect: '/login-failure'
+//   }),
+//   (err, req, res, next) => {
+//     if (err) next(err)
+//   }
+// )
+
 router.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) {
@@ -20,13 +31,15 @@ router.post("/login", (req, res, next) => {
     if (!user) {
       res.status(404).send("Username or password is incorrect")
     } else {
-      console.log("User found", user)
       req.login(user, (err) => {
         if (err) {
           res.status(404).send("User does exist, but there was an error...")
           // throw err
         } else {
-          res.send("Successfully authenticated")
+          // res.send({ status: 200, user, message: "Successfully Authenticated" })
+          console.log({user})
+          console.log({info})
+          res.redirect('/')
         }
       })
     }
@@ -116,7 +129,7 @@ router.post("/register", (req, res) => {
           (err, result, fields) => {
             if (err) throw err;
             res.send({ result, message: "Successfully registered" });
-
+            
           }
         );
       }
