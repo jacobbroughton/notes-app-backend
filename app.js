@@ -6,9 +6,6 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(express.json()); // parsing the incoming data
-app.use(express.urlencoded({ extended: true })); // parsing the incoming data
-
 app.use(
   cors({
     origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
@@ -16,6 +13,8 @@ app.use(
   })
 )
 
+app.use(express.json()); // parsing the incoming data
+app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 
 let origin
 if (process.env.NODE_ENV === "production") {
