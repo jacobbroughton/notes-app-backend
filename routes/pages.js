@@ -1,12 +1,8 @@
 const router = require("express").Router();
-const passport = require("passport");
-const genPassword = require("../lib/passwordUtils").genPassword;
 const pool = require("../config/database").pool;
-const isAuth = require("./authMiddleware").isAuth;
-const isAdmin = require("./authMiddleware").isAdmin;
+const isAuth = require("../authMiddleware").isAuth;
 const util = require("util");
 const query = util.promisify(pool.query).bind(pool);
-const { body, check } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {
   try {

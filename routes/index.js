@@ -2,9 +2,8 @@ const router = require("express").Router();
 const passport = require("passport");
 const genPassword = require("../lib/passwordUtils").genPassword;
 const pool = require("../config/database").pool;
-const isAuth = require("./authMiddleware").isAuth;
-const isAdmin = require("./authMiddleware").isAdmin;
-const { body } = require("express-validator");
+const isAuth = require("../authMiddleware").isAuth;
+const isAdmin = require("../authMiddleware").isAdmin;
 
 router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
@@ -20,7 +19,6 @@ router.post(
   }),
   (err, req, res, next) => {
     if (err) next(err)
-    console.log("Hello")
   }
 )
 
@@ -50,6 +48,11 @@ router.post("/register", (req, res) => {
         if (err) throw err;
 
         if (result.length) {
+          res.send({
+            code: 2,
+            message: "User already exists",
+            user: null,
+          });
           res.status(400).send({ message: "User already exists" });
           return;
         }
@@ -102,6 +105,7 @@ router.post("/register", (req, res) => {
           (err, result, fields) => {
             if (err) throw err;
             res.send({ result, message: "Successfully registered" });
+            
           }
         );
       }
