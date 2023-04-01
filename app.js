@@ -6,19 +6,9 @@ require("dotenv").config();
 
 const app = express();
 
-
-let origin
-if (process.env.NODE_ENV === "production") {
-  origin = "https://notes-app-jb.netlify.app"
-} else {
-  origin = "http://localhost:3000"
-}
-
-
 app.use(
   cors({
-    // origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
-    origin,
+    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
     credentials: true,
   })
 )
@@ -33,28 +23,28 @@ app.use(
   session({
 
     // ! Below is backup that works on firefox and chrome, but not safari
-    // store: sessionStore,
-    // secret: process.env.SESSION_SECRET,
-    // proxy: true,
-    // saveUninitialized: true, // allows any uninitialized session to be sent to the store. When a session is created but not modified, it is referred to as uninitialized.
-    // resave: false, // enables the session to be stored back to the session store, even if the session was never modified during the request.
-    // cookie: {
-    //   maxAge: 1000 * 60 * 60 * 24, // one day
-    //   secure: process.env.NODE_ENV === 'production',
-    //   httpOnly: false,
-    //   sameSite: process.env.NODE_ENV === 'production' ? 'none' : false
-    // },
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET,
+    proxy: true,
+    saveUninitialized: true, // allows any uninitialized session to be sent to the store. When a session is created but not modified, it is referred to as uninitialized.
+    resave: false, // enables the session to be stored back to the session store, even if the session was never modified during the request.
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // one day
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : false
+    },
     // ! Above is backup that works on firefox and chrome, but not safari
 
 
-    secret: `${process.env.SESSION_SECRET}`,
-    resave: false,
-    saveUninitialized: true,
-    store: sessionStore,
-    cookie: {
-      secure: false,
-      maxAge: 1000 * 60 * 60 * 24,
-    },
+    // secret: `${process.env.SESSION_SECRET}`,
+    // resave: false,
+    // saveUninitialized: true,
+    // store: sessionStore,
+    // cookie: {
+    //   secure: false,
+    //   maxAge: 1000 * 60 * 60 * 24,
+    // },
   })
 );
 

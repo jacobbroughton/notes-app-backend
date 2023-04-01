@@ -13,13 +13,25 @@ router.get("/", isAuth, (req, res) => {
 // Only continues past to the callback if authenticated with a user
 router.post(
   "/login",
-  passport.authenticate("local", {
-    successRedirect: '/',
-    failureRedirect: '/login-failure'
-  }),
-  (err, req, res, next) => {
-    if (err) next(err)
-  }
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      res.status(404).send("Error while logging in, please try again.")
+      // throw err
+    }
+    if (!user) {
+      res.status(404).send("Username or password is incorrect")
+    } else {
+      console.log("User found", user)
+      req.login(user, (err) => {
+        if (err) {
+          res.status(404).send("User does exist, but there was an error...")
+          // throw err
+        } else {
+          res.send("Successfully authenticated")
+        }
+      })
+    }
+  })(req, res, next)
 )
 
 
@@ -105,7 +117,7 @@ router.post("/register", (req, res) => {
           (err, result, fields) => {
             if (err) throw err;
             res.send({ result, message: "Successfully registered" });
-            
+
           }
         );
       }
