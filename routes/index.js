@@ -11,8 +11,7 @@ router.get("/", isAuth, (req, res) => {
 
 // passport.authenticate basically gives 'username' and 'password' and executes the verifyCallback function
 // Only continues past to the callback if authenticated with a user
-router.post(
-  "/login",
+router.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       res.status(404).send("Error while logging in, please try again.")
@@ -32,7 +31,7 @@ router.post(
       })
     }
   })(req, res, next)
-)
+})
 
 
 
