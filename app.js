@@ -6,15 +6,6 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(
-  cors({
-    origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
-    credentials: true,
-  })
-)
-
-app.use(express.json()); // parsing the incoming data
-app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 
 let origin
 if (process.env.NODE_ENV === "production") {
@@ -22,6 +13,18 @@ if (process.env.NODE_ENV === "production") {
 } else {
   origin = "http://localhost:3000"
 }
+
+
+app.use(
+  cors({
+    // origin: ["https://notes-app-jb.netlify.app", "http://localhost:3000"],
+    origin,
+    credentials: true,
+  })
+)
+
+app.use(express.json()); // parsing the incoming data
+app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 
 const passport = require("passport");
 const { sessionStore } = require("./config/database.js");
