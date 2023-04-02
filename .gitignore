@@ -1,5 +1,0 @@
-/server/.env
-/node_modules
-/server/node_modules
-/dist
-/envDir/.env
