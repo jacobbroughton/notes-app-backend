@@ -1,0 +1,164 @@
+.items-list .folder-container {
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+.items-list .folder-container.under-drag {
+  background-color: var(--tertiary-bg);
+}
+
+.items-list .rename-input {
+  padding: 1px 3px;
+  color: var(--color-text-primary);
+  background-color: var(--secondary-bg);
+  border: var(--tertiary-bg) 1px solid;
+  border-radius: 3px;
+}
+
+.items-list .new-folder-form input,
+.items-list .new-page-form input {
+  background: var(--secondary-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-accent-primary);
+  padding: 3px 5px;
+  width: 100%;
+}
+
+.items-list .folder-container .tier-blocks {
+  display: flex;
+}
+
+.items-list .folder-container .tier-blocks .tier-block {
+  transition: border-color 0.05s ease, background-color 0.05s ease;
+}
+
+.items-list .folder-container .tier-blocks .tier-block:not(:first-child) {
+  width: 10px;
+  border-right: 1px solid var(--color-tier-block-border);
+}
+
+.items-list .name-and-buttons {
+  height: 100%;
+  display: flex;
+  gap: 30px;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1px 5px;
+  overflow: hidden;
+  width: calc(100% - 10px);
+}
+
+.items-list .folder-container.hoverable:hover {
+  background-color: var(--tertiary-bg);
+}
+
+.items-list .folder-container.selected {
+  background-color: var(--tertiary-bg);
+}
+
+.items-list .folder-container.selected .tier-block:first-child {
+  background-color: var(--color-accent-primary);
+}
+
+.items-list .folder-container.selected .tier-block:not(:first-child) {
+  border-color: var(--color-accent-primary);
+}
+
+.items-list .folder-container .name-and-buttons .folder-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  width: auto;
+  gap: 3px;
+  padding: 0px 3px;
+}
+
+.items-list
+  .folder-container:not(.selected):not(:hover)
+  .name-and-buttons
+  .folder-buttons {
+  background-color: var(--primary-bg);
+}
+
+.items-list .name-and-buttons button {
+  min-width: 17px;
+  padding: 0px 3px;
+  height: 17px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: 0.05s ease-in-out border-color, 0.05s ease-in-out background-color;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.items-list .name-and-buttons button:disabled,
+.items-list .name-and-buttons button:not(:disabled):hover {
+  border: 1px solid var(--color-accent-primary);
+  color: var(--color-text-primary);
+}
+
+.items-list .name-and-buttons button:not(:disabled):active {
+  background-color: var(--color-accent-primary);
+}
+
+.items-list .name-and-buttons svg {
+  width: 8px;
+  height: 8px;
+  fill: var(--color-text-primary);
+  margin-right: 5px;
+}
+
+.items-list .name-and-caret {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.items-list .tags {
+  position: absolute;
+  right: 10px;
+  display: flex;
+}
+
+.items-list .tags span {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  filter: drop-shadow(-1px 1px 1px rgb(0 0 0 / 15%));
+}
+
+.items-list .tags span:not(:last-child) {
+  margin-right: -3px;
+}
+
+.items-list .caret-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  width: 20px;
+}
+
+.items-list .caret-container .page-icon {
+  width: 10px;
+  height: 10px;
+  fill: var(--color-accent-secondary);
+}
+
+.items-list .name-and-buttons p {
+  white-space: nowrap;
+/* font-size: 0.875rem; */
+  font-weight: 500;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: var(--color-text-primary);
+}

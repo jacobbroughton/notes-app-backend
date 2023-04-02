@@ -1,0 +1,23 @@
+.open-page-navigation {
+  display: flex;
+  height: 100%;
+  max-height: 35px;
+  overflow-x: auto;
+  background-color: var(--color-sidebar-nav);
+  width: 100%;
+  width: calc(100% + 30px);
+  margin-left: -15px;
+}
+
+.open-page-navigation::-webkit-scrollbar {
+  height: 3px;
+}
+
+.open-page-navigation::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.open-page-navigation::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 25px;
+}

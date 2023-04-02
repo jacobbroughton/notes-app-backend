@@ -1,0 +1,80 @@
+.delete-modal-container {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background-color: var(--tertiary-bg);
+}
+
+.delete-modal {
+  position: absolute;
+  left: 0;
+  max-width: 250px;
+  transform: translate(-50%, -50%);
+  left: 50%;
+  top: 50%;
+  background-color: var(--tertiary-bg);
+  border-radius: 3px;
+  z-index: 5;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--color-text-primary);
+  box-shadow: var(--large-shadow);
+  gap: 10px;
+}
+
+.delete-modal .sure-question {
+  text-align: center;
+  font-weight: 600;
+}
+
+.delete-modal .items-to-delete-list {
+  list-style: none;
+  padding: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.delete-modal .items-to-delete-list li {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.delete-modal .items-to-delete-list li svg {
+  width: 100%;
+  min-width: 10px;
+  max-width: 10px;
+  fill: var(--color-accent-secondary);
+}
+
+.delete-modal .buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 200px;
+  width: 100%;
+}
+
+.delete-modal button {
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.delete-modal button.delete-btn {
+  background-color: var(--color-accent-primary);
+}
+
+.delete-modal button:not(.delete-btn) {
+}

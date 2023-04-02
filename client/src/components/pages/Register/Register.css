@@ -1,0 +1,43 @@
+.register-view {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  gap: 20px;
+  padding-top: 100px;
+  width: 100%;
+  max-width: 350px;
+  color: var(--color-text-primary);
+}
+
+.register-view .register-error {
+  background-color: crimson;
+  color: var(--color-text-secondary);
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+
+.register-view form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-view input {
+  padding: 5px 10px;
+  font-size: 1rem;
+  background-color: var(--secondary-bg);
+  border: 1px solid var(--tertiary-bg);
+  box-shadow: var(--small-shadow);
+}
+
+.register-view button {
+  background-color: var(--color-accent-primary);
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 0;
+  cursor: pointer;
+}
+
+.register-view a {
+  color: var(--color-accent-primary);
+}

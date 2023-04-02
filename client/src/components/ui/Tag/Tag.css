@@ -1,0 +1,25 @@
+.tag {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: 0;
+  transition: 0.1s ease background-color;
+  width: 100%;
+}
+
+.tag .color-span {
+  min-width: 10px;
+  height: 10px;
+  border-radius: 100px;
+}
+
+.tag p {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}

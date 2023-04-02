@@ -1,0 +1,33 @@
+.user-menu {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  bottom: 10px;
+  left: 60px;
+  padding: 5px;
+  border: var(--color-accent-primary) solid 1px;
+  border-radius: 3px;
+  background-color: var(--secondary-bg);
+  min-width: 150px;
+}
+
+.user-menu button,
+.user-menu a {
+  width: 100%;
+  background-color: transparent;
+  border: 0;
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+.user-menu button:hover,
+.user-menu a:hover {
+    background-color: var(--color-accent-primary); 
+    color: white;
+}

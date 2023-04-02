@@ -1,0 +1,214 @@
+.loading-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  color: var(--color-text-primary);
+}
+
+.home-view {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+}
+
+.home-view .editor-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.home-view .page-path {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-left: -15px;
+  width: calc(100% + 30px);
+  min-height: 26px;
+  height: 26px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  color: var(--color-text-primary);
+}
+
+.home-view .page-path::-webkit-scrollbar {
+  height: 3px;
+}
+
+.home-view .page-path::-webkit-scrollbar-track {
+  background-color: var(--secondary-bg);
+  scrollbar-width: 10px;
+}
+
+.home-view .page-path::-webkit-scrollbar-thumb {
+  background-color: var(--tertiary-bg);
+  border-radius: 25px;
+  width: 3px;
+}
+
+.home-view .page-path .folder-name-and-divider {
+  display: flex;
+  align-items: center;
+}
+
+.home-view .page-path p {
+/* font-size: 0.875rem; */
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.home-view .page-path .path-divider {
+  opacity: 0.5;
+  color: var(--color-text-primary);
+}
+
+.home-view .page-path .current-page {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.home-view .page-path .current-page svg {
+  fill: var(--color-accent-secondary);
+  width: 10px;
+  height: 10px;
+}
+
+.home-view .page-path button:hover {
+  text-decoration: underline;
+}
+
+.home-view .heading {
+  width: 100%;
+  display: flex;
+  gap: 5px;
+  position: relative;
+}
+
+.home-view .editor-form textarea,
+.home-view .heading input {
+  transition: border-color 0.15s ease;
+  box-shadow: var(--container-shadow);
+  width: 100%;
+  color: var(--color-input-placeholder);
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 5px 10px;
+  background-color: var(--secondary-bg);
+  border-radius: 3px;
+  height: 100%;
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  resize: none;
+}
+
+.home-view .editor-form textarea::placeholder,
+.home-view .heading input::placeholder,
+.home-view .editor-form textarea::-ms-input-placeholder,
+.home-view .heading input::-ms-input-placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.home-view .heading input {
+  width: 100%;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.home-view .heading input:focus,
+.home-view .heading input:active,
+.home-view .heading input:focus-within,
+.home-view .heading input:focus-visible,
+.home-view .editor-form textarea:not(.error):focus,
+.home-view .editor-form textarea:not(.error):active,
+.home-view .editor-form textarea:not(.error):focus-within,
+.home-view .editor-form textarea:not(.error):focus-visible {
+  border: 1px solid var(--tertiary-bg) !important;
+}
+
+.home-view .heading input.error,
+.home-view .heading input:focus.error,
+.home-view .heading input:active.error,
+.home-view .heading input:focus-within.error,
+.home-view .heading input:focus-visible.error,
+.home-view textarea.error,
+.home-view textarea:focus.error,
+.home-view textarea:active.error,
+.home-view textarea:focus-within.error,
+.home-view textarea:focus-visible.error {
+  border: 1px solid crimson !important;
+  outline: none;
+}
+
+.home-view .heading .no-title-warning {
+  background: var(--secondary-bg);
+  color: var(--color-text-primary);
+  border: crimson 1px solid;
+  border-radius: 3px;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 15px;
+  padding: 3px 5px;
+/* font-size: 0.875rem; */
+  z-index: 3;
+}
+
+.home-view .heading .status-indicator {
+  min-width: 10px;
+  width: 10px;
+  height: 100%;
+  border-radius: 3px;
+  cursor: help;
+  transition: 0.15s ease background-color;
+  box-shadow: var(--container-shadow);
+}
+
+.home-view .heading .status-indicator.unsaved {
+  background-color: var(--color-unsaved);
+}
+
+.home-view .heading .status-indicator.saved {
+  background-color: var(--color-saved);
+}
+
+.home-view .unsaved-warning-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--primary-bg);
+  box-shadow: var(--large-shadow);
+  padding: 20px;
+  color: var(--color-text-primary);
+  border-radius: 3px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-view .unsaved-warning-modal .buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.home-view .unsaved-warning-modal .buttons button {
+  padding: 3px 5px;
+  border-radius: 3px;
+  border: 0;
+  cursor: pointer;
+}
+
+.home-view .unsaved-warning-modal .buttons button.save-btn {
+  background-color: var(--color-accent-primary);
+}

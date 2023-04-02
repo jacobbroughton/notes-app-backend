@@ -1,0 +1,124 @@
+.page-search {
+  height: 100%;
+  width: 100%;
+  padding-bottom: 40px;
+  overflow-y: scroll;
+  background-color: var(--primary-bg);
+  border: 1px solid transparent;
+/* font-size: 0.875rem; */
+}
+
+.page-search .no-results-found {
+  color: var(--color-text-primary);
+  margin-left: 10px;
+}
+
+.page-search form {
+  width: calc(100% - 10px);
+  margin: 5px;
+}
+
+.page-search form input {
+  width: 100%;
+  padding: 5px;
+  background-color: var(--secondary-bg);
+  color: var(--color-text-primary);
+  border-radius: 3px;
+  border: 1px solid var(--tertiary-bg);
+}
+
+.page-search .page-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.page-container .tier-block-and-name {
+  display: flex;
+  line-height: 1.5rem;
+}
+
+.page-search .page-container:hover,
+.page-search .page-container.selected {
+  background-color: var(--tertiary-bg);
+}
+
+.page-search .page-container .matching-body-examples {
+  padding-left: 20px;
+  width: calc(100% - 10px);
+}
+
+.page-search .page-container .matching-body-examples p {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+  overflow: hidden;
+  color: var(--color-text-primary);
+}
+
+.page-search .page-container .matching-body-examples p span.matching {
+  background-color: var(--color-matching-highlight);
+  text-shadow: var(--color-matching-highlight-shadow);
+}
+
+.page-search .page-container .tier-block-and-name .tier-block {
+  transition: border-color 0.05s ease, background-color 0.05s ease;
+}
+
+.page-search .page-container .tier-block-and-name .tier-block:not(:first-child) {
+  width: 10px;
+  border-right: 1px solid rgba(211, 211, 211, 0.292);
+}
+
+.page-search .page-container.selected .tier-block:first-child {
+  background-color: var(--color-accent-primary);
+}
+
+.page-search .page-container.selected .tier-block:not(:first-child) {
+  border-color: var(--color-accent-primary);
+}
+
+.page-search .name-and-buttons svg {
+  width: 8px;
+  height: 8px;
+  fill: var(--color-text-primary);
+  margin-right: 5px;
+}
+
+.page-search .name-and-caret {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.page-search .name-and-caret p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-search .caret-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  width: 20px;
+}
+
+.page-search .caret-container .page-icon {
+  width: 10px;
+  height: 10px;
+  fill: var(--color-accent-secondary);
+}
+
+.page-search .name-and-buttons p {
+  white-space: nowrap;
+/* font-size: 0.875rem; */
+  font-weight: 500;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}

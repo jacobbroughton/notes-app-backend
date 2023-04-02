@@ -1,0 +1,92 @@
+.open-page-navigation .page-button,
+.open-page-navigation .page-button .x-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  background-color: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  color: white;
+  cursor: pointer;
+}
+
+.open-page-navigation .page-button {
+  padding: 7px 5px 7px 12px;
+/* font-size: 0.875rem; */
+  white-space: nowrap;
+  border-top: 1px solid transparent;
+  user-select: none;
+}
+
+.open-page-navigation .page-button.active {
+  background-color: #444;
+  border-top: 1px solid var(--color-accent-primary);
+}
+
+.open-page-navigation .page-button:not(.active):hover {
+  background-color: #3f3f3f;
+}
+
+.open-page-navigation .page-button.untitled {
+  padding-right: 12px;
+  cursor: default;
+}
+
+.open-page-navigation .page-button .x-button {
+  padding: 2px 5px;
+  border-radius: 3px;
+  opacity: 0;
+  visibility: 0;
+}
+
+.open-page-navigation .page-button:hover .x-button,
+.open-page-navigation .page-button.active .x-button {
+  opacity: 1;
+  visibility: 1;
+}
+
+.open-page-navigation .page-button .x-button:hover {
+  background-color: #555;
+}
+
+.open-page-navigation .page-button .x-button svg {
+  width: 100%;
+  height: 100%;
+  width: 10px;
+  height: 13px;
+  fill: white;
+}
+
+.open-page-navigation .page-button .unsaved-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 100%;
+  background-color: #ccc;
+  user-select: none;
+}
+
+.open-page-navigation .page-button:not(.untitled) .unsaved-circle {
+  display: none;
+}
+
+.open-page-navigation .page-button.unsaved .x-button {
+  opacity: 1;
+  visibility: 1;
+}
+
+.open-page-navigation .page-button.unsaved .x-button svg {
+  display: none;
+}
+
+.open-page-navigation .page-button.unsaved .x-button .unsaved-circle {
+  display: block;
+}
+
+.open-page-navigation .page-button.unsaved .x-button:hover svg {
+  display: block;
+}
+
+.open-page-navigation .page-button.unsaved .x-button:hover .unsaved-circle {
+  display: none;
+}

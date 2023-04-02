@@ -3,15 +3,20 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 require("dotenv").config();
+const path = require('path')
 
 const app = express();
 
-app.use(
-  cors({
-    origin: ["https://notes-app-jb.onrender.com", "http://notes-app-jb.onrender.com", "http://localhost:3000"],
-    credentials: true,
-  })
-)
+// app.use(
+//   cors({
+//     origin: ["https://notes-app-jb.onrender.com", "http://notes-app-jb.onrender.com", "http://localhost:3000"],
+//     credentials: true,
+//   })
+// )
+app.use(express.static(path.join(__dirname, 'client', "dist")))
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname, 'client', "dist", 'index.html'))
+})
 
 
 const passport = require("passport");
@@ -22,7 +27,6 @@ app.use(express.urlencoded({ extended: true })); // parsing the incoming data
 app.use(
   session({
 
-    // ! Below is backup that works on firefox and chrome, but not safari
     store: sessionStore,
     secret: process.env.SESSION_SECRET,
     proxy: true,
@@ -34,7 +38,6 @@ app.use(
       httpOnly: false,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : false
     },
-    // ! Above is backup that works on firefox and chrome, but not safari
 
 
     // secret: `${process.env.SESSION_SECRET}`,
@@ -52,12 +55,12 @@ require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
 
-app.use("/", require("./routes"));
-app.use('/folders', require("./routes/folders"));
-app.use('/pages', require("./routes/pages"));
-app.use('/tags', require("./routes/tags"));
+app.use("/api", require("./routes"));
+app.use('/api/folders', require("./routes/folders"));
+app.use('/api/pages', require("./routes/pages"));
+app.use('/api/tags', require("./routes/tags"));
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
