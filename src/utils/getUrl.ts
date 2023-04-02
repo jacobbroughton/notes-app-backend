@@ -1,7 +1,7 @@
 export const getApiUrl = () => {
   let API_URL
 
-  console.log(import.meta)
+  console.log(import.meta.env)
 
   if (import.meta.env.PROD) {
     API_URL = "https://notes-app-backend.onrender.com/api"

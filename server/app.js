@@ -7,17 +7,20 @@ const path = require('path')
 
 const app = express();
 
-// app.use(
-//   cors({
-//     origin: ["https://notes-app-jb.onrender.com", "http://notes-app-jb.onrender.com", "http://localhost:3000"],
-//     credentials: true,
-//   })
-// )
-app.use(express.static(path.join(__dirname, 'client', "dist")))
-app.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, 'client', "dist", 'index.html'))
-})
+app.use(
+  cors({
+    origin: ["https://notes-app-jb.onrender.com", "http://notes-app-jb.onrender.com", "http://localhost:5173"],
+    credentials: true,
+  })
+)
 
+const rootPath = __dirname.replace('/server', '/dist')
+console.log(rootPath)
+
+app.use('/', express.static(rootPath))
+// app.get('/*', function (req, res) {
+//   res.sendFile(path.join(rootPath, 'index.html'))
+// })
 
 const passport = require("passport");
 const { sessionStore } = require("./config/database.js");
@@ -59,6 +62,7 @@ app.use("/api", require("./routes"));
 app.use('/api/folders', require("./routes/folders"));
 app.use('/api/pages', require("./routes/pages"));
 app.use('/api/tags', require("./routes/tags"));
+
 
 const port = process.env.PORT || 3000;
 
