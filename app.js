@@ -8,7 +8,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://notes-app-jb.onrender.com/", "http://localhost:3000"],
+    origin: ["https://notes-app-jb.onrender.com", "http://notes-app-jb.onrender.com", "http://localhost:3000"],
     credentials: true,
   })
 )
