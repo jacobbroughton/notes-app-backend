@@ -378,7 +378,7 @@ const Home = () => {
         clearTimeout(noTitleWarningTimeout);
         setNoTitleWarningToggled(false);
       }, 5000);
-      setNoTitleWarningTimeout(timeout);
+      // setNoTitleWarningTimeout(timeout); // TODO - Uncomment this
     }
   }, [noTitleWarningToggled]);
 
