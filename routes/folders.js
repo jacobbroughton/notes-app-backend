@@ -26,7 +26,7 @@ router.get("/", isAuth, async (req, res) => {
     WHERE a.EFF_STATUS = 1
     AND a.CREATED_BY_ID = ?
     GROUP BY a.ID
-    `
+    `;
 
     let rows = await query(SELECT_FOLDERS, [req.user.ID, req.user.ID]);
     let folders = [];
@@ -70,15 +70,17 @@ router.get("/", isAuth, async (req, res) => {
     rootFolders.forEach((folder) => determineChildren(folder, rows, 2));
 
     folders.forEach((folder, index) => {
-      folder.TAGS = folder.TAGS ? folder.TAGS.split(',').map(tagId => parseInt(tagId)) : []
+      folder.TAGS = folder.TAGS
+        ? folder.TAGS.split(",").map((tagId) => parseInt(tagId))
+        : [];
       folder.ORDER = index + 1;
     });
 
     folders = folders.sort((a, b) => b.ORDER - a.ORDER);
 
     res.send({ folders: folders });
-  } catch (err) {
-    console.log(err)
+  } catch (error) {
+    console.log(error);
   }
 });
 
@@ -104,59 +106,72 @@ router.post("/new", isAuth, async (req, res, next) => {
     )
   `;
 
-    const result = await query(
-      sql,
-      [
-        req.body.parentFolderId,
-        req.body.newFolderName,
-        req.user.ID,
-      ])
+    const result = await query(sql, [
+      req.body.parentFolderId,
+      req.body.newFolderName,
+      req.user.ID,
+    ]);
 
-    if (!result) throw 'There was an error adding the folder'
+    if (result) {
+      res.statusMessage = "There was an error adding the new folder";
+      res.status(400).end();
+      return;
+    }
 
     res.send({ result, message: "Successfully added folder" });
-  } catch (err) {
-    console.log(err)
+  } catch (error) {
+    console.log(error);
   }
 });
-
 
 router.post("/delete", isAuth, async (req, res, next) => {
   try {
     async function getChildren(folderId) {
-      return await query(`
+      return await query(
+        `
       SELECT ID FROM TBL_FOLDER
       WHERE PARENT_FOLDER_ID = ?
       AND EFF_STATUS = 1
-    `, [folderId]);
+    `,
+        [folderId]
+      );
     }
 
     async function getPagesInFolder(folderId) {
-      return await query(`
+      return await query(
+        `
       SELECT PAGE_ID FROM TBL_PAGE
       WHERE FOLDER_ID = ?
       AND EFF_STATUS = 1
-    `, [folderId]);
+    `,
+        [folderId]
+      );
     }
 
     async function deleteFolders(folderIds) {
-      return await query(`
+      return await query(
+        `
       UPDATE TBL_FOLDER
       SET 
         EFF_STATUS = 0,
         MODIFIED_DTTM = SYSDATE()
       WHERE ID IN (?)
-    `, [...folderIds]);
+    `,
+        [...folderIds]
+      );
     }
 
     async function deletePages(pageIds) {
-      return await query(`
+      return await query(
+        `
       UPDATE TBL_PAGE
       SET 
         EFF_STATUS = 0,
         MODIFIED_DTTM = SYSDATE()
       WHERE PAGE_ID IN (?)
-    `, [...pageIds]);
+    `,
+        [...pageIds]
+      );
     }
 
     let foldersToDelete = [];
@@ -189,14 +204,14 @@ router.post("/delete", isAuth, async (req, res, next) => {
       deletedPages: pagesToDelete,
       message: "Folders and pages successfully deleted",
     });
-  } catch (err) {
-    console.log(err)
+  } catch (error) {
+    console.log(error);
   }
 });
 
 router.post("/delete-multiple", isAuth, async (req, res) => {
   try {
-    const folderIdsForDelete = req.body.folders.map(folder => folder.ID)
+    const folderIdsForDelete = req.body.folders.map((folder) => folder.ID);
 
     const sql = `
       UPDATE TBL_FOLDER
@@ -204,18 +219,25 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
         EFF_STATUS = 0,
         MODIFIED_DTTM = SYSDATE()
       WHERE ID IN (?)
-    `
+    `;
 
-    const result = await query(sql, [[...folderIdsForDelete]])
+    const result = await query(sql, [[...folderIdsForDelete]]);
 
-    if (!result) throw 'There was an error deleting multiple folders'
+    if (!result) {
+      res.statusText = "There was an error deleting multiple folders";
+      res.status(409).end();
+      return;
+    }
 
-    res.send({ result, deletedFolderIds: folderIdsForDelete, message: "Successfully deleted multiple folders" })
-
-  } catch (err) {
-    console.log(err)
+    res.send({
+      result,
+      deletedFolderIds: folderIdsForDelete,
+      message: "Successfully deleted multiple folders",
+    });
+  } catch (error) {
+    console.log(error);
   }
-})
+});
 
 router.post("/rename", isAuth, async (req, res) => {
   try {
@@ -223,15 +245,18 @@ router.post("/rename", isAuth, async (req, res) => {
     UPDATE TBL_FOLDER
     SET NAME = ?
     WHERE ID = ?
-    `
-    const result = await query(sql, [req.body.newName, req.body.folderId])
+    `;
+    const result = await query(sql, [req.body.newName, req.body.folderId]);
 
-    if (!result) throw 'There was an error renaming this folder'
+    if (!result) {
+      res.statusText = "There was an error renaming this folder";
+      res.status(409).end();
+      return;
+    }
 
-    res.send({ result, message: "Successfully renamed folder" })
-
-  } catch (err) {
-    console.log(err)
+    res.send({ result, message: "Successfully renamed folder" });
+  } catch (error) {
+    console.log(error);
   }
 });
 

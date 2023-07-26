@@ -9,87 +9,73 @@ router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
 
-// passport.authenticate basically gives 'username' and 'password' and executes the verifyCallback function
-// Only continues past to the callback if authenticated with a user
-// router.post(
-//   "/login",
-//   passport.authenticate("local", {
-//     successRedirect: '/',
-//     failureRedirect: '/login-failure'
-//   }),
-//   (err, req, res, next) => {
-//     if (err) next(err)
-//   }
-// )
-
 router.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (err) {
-      res.status(404).send("Error while logging in, please try again.")
-      // throw err
+  console.log("Hello");
+  passport.authenticate("local", (error, user, info) => {
+    if (error) {
+      res.statusMessage = '"Error while logging in, please try again."';
+      res.status(401).end();
     }
     if (!user) {
-      res.status(404).send("Username or password is incorrect")
+      res.statusMessage = "Username or password is incorrect";
+      res.status(401).end();
     } else {
-      req.login(user, (err) => {
-        if (err) {
-          res.status(404).send("User does exist, but there was an error...")
-          // throw err
+      req.login(user, (error) => {
+        if (error) {
+          res.statusMessage = "User does exist, but there was an error...";
+          res.status(401).end();
         } else {
-          // res.send({ status: 200, user, message: "Successfully Authenticated" })
-          // console.log({user})
-          // console.log({info})
-          res.redirect('/')
+          res.redirect("/");
         }
-      })
+      });
     }
-  })(req, res, next)
-})
-
-
+  })(req, res, next);
+});
 
 router.post("/register", (req, res) => {
-
   try {
-    let sql
+    let sql;
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       sql = `
           SELECT * FROM \`notes-app\`.TBL_USER
           WHERE USERNAME = ?
-        `
+        `;
     } else {
       sql = `
           SELECT * FROM notesApp.TBL_USER
           WHERE USERNAME = ?
-        `
+        `;
     }
 
-    pool.query(
-      sql,
-      [req.body.username],
-      (err, result, fields) => {
-        if (err) throw err;
+    pool.query(sql, [req.body.username], (error, result, fields) => {
+      if (error) {
+        console.log(error);
+        res.statusMessage = error.message;
+        res.status(409).end();
+        return;
+      }
 
-        if (result.length) {
-          res.send({
-            code: 2,
-            message: "User already exists",
-            user: null,
-          });
-          res.status(400).send({ message: "User already exists" });
-          return;
-        }
+      if (result.length) {
+        res.send({
+          code: 2,
+          message: "User already exists",
+          user: null,
+        });
+        res.statusMessage = "User already exists";
+        res.status(409).end();
+        return;
+      }
 
-        const saltHash = genPassword(req.body.password);
+      const saltHash = genPassword(req.body.password);
 
-        const salt = saltHash.salt;
-        const hash = saltHash.hash;
+      const salt = saltHash.salt;
+      const hash = saltHash.hash;
 
-        let sql
+      let sql;
 
-        if (process.env.NODE_ENV === 'production') {
-          sql = `
+      if (process.env.NODE_ENV === "production") {
+        sql = `
             INSERT INTO \`notes-app\`.TBL_USER (
                 USERNAME,
                 HASH,
@@ -103,9 +89,9 @@ router.post("/register", (req, res) => {
                 SYSDATE(), 
                 null
             )
-        `
-        } else {
-          sql = `
+        `;
+      } else {
+        sql = `
               INSERT INTO notesApp.TBL_USER (
                   USERNAME,
                   HASH,
@@ -119,24 +105,21 @@ router.post("/register", (req, res) => {
                   SYSDATE(), 
                   null
               )
-          `
-        }
-
-        // Save the user to the database
-        pool.query(
-          sql,
-          [req.body.username, hash, salt],
-          (err, result, fields) => {
-            if (err) throw err;
-            res.send({ result, message: "Successfully registered" });
-            
-          }
-        );
+          `;
       }
-    );
 
+      // Save the user to the database
+      pool.query(sql, [req.body.username, hash, salt], (error, result, fields) => {
+        if (error) {
+          res.statusMessage = error.message || error.sqlMessage;
+          res.status(409).end();
+          return;
+        }
+        res.send({ result, message: "Successfully registered" });
+      });
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 });
 
@@ -148,22 +131,14 @@ router.get("/admin-route", isAdmin, (req, res) => {
   res.send({ message: "You made it to the admin route", user: req.user });
 });
 
-router.get("/login-failure", (req, res) => {
-  res.send({
-    code: 2,
-    message: "Login failed, please check your username and password and try again.",
-    user: null,
-  });
-  // res.status({
-  //   message: "Login failed, please check your username and password and try again.",
-  //   user: req.user,
-  // });
-});
-
 // Removes req.session.passport.user property from session
 router.get("/logout", (req, res, next) => {
-  req.logout((err) => {
-    if (err) throw err;
+  req.logout((error) => {
+    if (error) {
+      res.statusMessage = "There was an error logging out";
+      res.status(409).end();
+      return;
+    }
     req.session.destroy();
     res.clearCookie("connect.sid");
     res.send({ message: "Logged out successfully" });
