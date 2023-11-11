@@ -112,7 +112,7 @@ router.post("/new", isAuth, async (req, res, next) => {
       req.user.ID,
     ]);
 
-    if (result) {
+    if (!result) {
       res.statusMessage = "There was an error adding the new folder";
       res.status(400).end();
       return;

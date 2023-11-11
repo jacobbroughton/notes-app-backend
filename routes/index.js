@@ -9,28 +9,37 @@ router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
 
-router.post("/login", (req, res, next) => {
-  console.log("Hello");
-  passport.authenticate("local", (error, user, info) => {
-    if (error) {
-      res.statusMessage = '"Error while logging in, please try again."';
-      res.status(401).end();
-    }
-    if (!user) {
-      res.statusMessage = "Username or password is incorrect";
-      res.status(401).end();
-    } else {
-      req.login(user, (error) => {
-        if (error) {
-          res.statusMessage = "User does exist, but there was an error...";
-          res.status(401).end();
-        } else {
-          res.redirect("/");
-        }
-      });
-    }
-  })(req, res, next);
-});
+router.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/api",
+    failureRedirect: "login-failure",
+  })
+);
+// (req, res, next) => {
+//   console.log(res)
+//   passport.authenticate("local",
+// (error, user, info) => {
+//   if (error) {
+//     res.statusMessage = '"Error while logging in, please try again."';
+//     res.status(401).end();
+//   }
+//   if (!user) {
+//     res.statusMessage = "Username or password is incorrect";d
+//     res.status(401).end();
+//   } else {
+//     req.login(user, (error) => {
+//       console.log(user)f
+//       if (error) {
+//         res.statusMessage = "User does exist, but there was an error...";
+//         res.status(401).end();
+//       } else {
+//         res.redirect("/");
+//       }
+//     });
+//   }
+// })(req, res, next);
+// });
 
 router.post("/register", (req, res) => {
   try {

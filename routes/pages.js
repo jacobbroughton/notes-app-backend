@@ -69,8 +69,7 @@ router.post("/new", isAuth, async (req, res) => {
       req.body.parentFolderId,
       req.body.newPageName,
       req.body.newPageName,
-      req.body.newPageBody ||
-        '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}',
+      req.body.newPageBody || "",
       req.user.ID,
     ]);
 
@@ -89,7 +88,7 @@ router.post("/edit", isAuth, async (req, res) => {
     if (!req.body.name) {
       res.statusText = "Name cannot be empty";
       res.status(409).end();
-      return
+      return;
     }
 
     const UPDATE_PAGE = `
@@ -110,7 +109,7 @@ router.post("/edit", isAuth, async (req, res) => {
     if (!result) {
       res.statusText = "There was an error editing the page";
       res.status(409).end();
-      return
+      return;
     }
 
     const SELECT_UPDATED_PAGE = `

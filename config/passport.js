@@ -9,44 +9,37 @@ const pool = require("./database").pool;
 //   passwordField: "pw",
 // };
 
-
 const strategy = new LocalStrategy(
   { usernameField: "username", passwordField: "password" },
   (username, password, done) => {
     try {
+      let sql;
 
-      let sql
-
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         sql = `
           SELECT * FROM \`notes-app\`.TBL_USER
           WHERE USERNAME = ?
-        `
+        `;
       } else {
         sql = `
           SELECT * FROM notesApp.TBL_USER
           WHERE USERNAME = ?
-        `
+        `;
       }
 
-      pool.query(
-        sql,
-        [username],
-        (err, rows) => {
-          if (err) throw err;
-          if (!rows[0]) return done(null, false);
+      pool.query(sql, [username], (err, rows) => {
+        if (err) throw err;
+        if (!rows[0]) return done(null, false);
 
-          const isValid = validatePassword(password, rows[0].HASH, rows[0].SALT);
+        const isValid = validatePassword(password, rows[0].HASH, rows[0].SALT);
 
-          if (isValid) {
-            return done(null, rows[0]);
-          }
-          return done(null, false, {
-            message: 'Username or password is incorrect'
-          });
-
+        if (isValid) {
+          return done(null, rows[0]);
         }
-      );
+        return done(null, false, {
+          message: "Username or password is incorrect",
+        });
+      });
     } catch (err) {
       done(err);
     }
@@ -65,33 +58,28 @@ passport.serializeUser((user, done) => {
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
+  let sql;
 
-  let sql
-
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     sql = `
       SELECT * FROM \`notes-app\`.TBL_USER
       WHERE ID = ?
-    `
+    `;
   } else {
     sql = `
       SELECT * FROM notesApp.TBL_USER
       WHERE ID = ?
-    `
+    `;
   }
 
-  pool.query(
-    sql,
-    [userId],
-    (err, result) => {
-      if (err) {
-        console.log(err)
-        done(err, false, { error: err })
-      };
-
-      const user = result[0];
-
-      done(null, user); // attaches user to req.user
+  pool.query(sql, [userId], (err, result) => {
+    if (err) {
+      console.log("SQL ERROR - ", err);
+      done(err, false, { error: err });
     }
-  );
+
+    const user = result[0];
+
+    done(null, user); // attaches user to req.user
+  });
 });
