@@ -12,7 +12,7 @@ router.get("/", isAuth, (req, res) => {
 router.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/api",
+    successRedirect: "/",
     failureRedirect: "login-failure",
   })
 );
