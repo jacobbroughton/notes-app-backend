@@ -12,7 +12,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://notesappjb.com",
-      "https://www.notesappjb.com",
+      "https://www.notesjb.com",
     ],
   })
 );
@@ -60,10 +60,10 @@ require("./config/passport"); // pretty much includes the passport.use()
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
 
-app.use("/api", require("./routes"));
-app.use("/api/folders", require("./routes/folders"));
-app.use("/api/pages", require("./routes/pages"));
-app.use("/api/tags", require("./routes/tags"));
+app.use("", require("./routes"));
+app.use("/folders", require("./routes/folders"));
+app.use("/pages", require("./routes/pages"));
+app.use("/tags", require("./routes/tags"));
 
 const port = process.env.PORT || 3001;
 
