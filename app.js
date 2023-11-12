@@ -11,7 +11,7 @@ app.use(
     credentials: true,
     origin: [
       "http://localhost:3000",
-      "https://notesappjb.com",
+      "https://notesjb.com",
       "https://www.notesjb.com",
     ],
   })
