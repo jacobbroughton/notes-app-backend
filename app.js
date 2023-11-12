@@ -6,7 +6,16 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
+app.use(
+  cors({
+    credentials: true,
+    origin: [
+      "http://localhost:3000",
+      "https://notesappjb.com",
+      "https://www.notesappjb.com",
+    ],
+  })
+);
 
 // const rootPath = __dirname.replace('/server', '/dist')
 // console.log(rootPath)
