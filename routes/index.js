@@ -11,51 +11,18 @@ router.get("/", isAuth, (req, res) => {
 
 router.post(
   "/login",
-  passport.authenticate("local", {
-    successRedirect: "/",
-    failureRedirect: "login-failure",
-  })
+  passport.authenticate('local'),
+  function(req, res) {
+    res.json({ user: req.user, message: 'Logged in successfully' });
+  }
 );
-// (req, res, next) => {
-//   console.log(res)
-//   passport.authenticate("local",
-// (error, user, info) => {
-//   if (error) {
-//     res.statusMessage = '"Error while logging in, please try again."';
-//     res.status(401).end();
-//   }
-//   if (!user) {
-//     res.statusMessage = "Username or password is incorrect";d
-//     res.status(401).end();
-//   } else {
-//     req.login(user, (error) => {
-//       console.log(user)f
-//       if (error) {
-//         res.statusMessage = "User does exist, but there was an error...";
-//         res.status(401).end();
-//       } else {
-//         res.redirect("/");
-//       }
-//     });
-//   }
-// })(req, res, next);
-// });
 
 router.post("/register", (req, res) => {
   try {
-    let sql;
-
-    if (process.env.NODE_ENV === "production") {
-      sql = `
-          SELECT * FROM \`notes-app\`.TBL_USER
-          WHERE USERNAME = ?
+    let sql = `
+          select * from users
+          where username = $1
         `;
-    } else {
-      sql = `
-          SELECT * FROM notesApp.TBL_USER
-          WHERE USERNAME = ?
-        `;
-    }
 
     pool.query(sql, [req.body.username], (error, result, fields) => {
       if (error) {
@@ -81,41 +48,21 @@ router.post("/register", (req, res) => {
       const salt = saltHash.salt;
       const hash = saltHash.hash;
 
-      let sql;
-
-      if (process.env.NODE_ENV === "production") {
-        sql = `
-            INSERT INTO \`notes-app\`.TBL_USER (
-                USERNAME,
-                HASH,
-                SALT,
-                CREATED_DTTM,
-                MODIFIED_DTTM
-            ) VALUES (
-                ?,
-                ?,
-                ?,
-                SYSDATE(), 
+      let sql = `
+            insert into users (
+                username,
+                hash,
+                salt,
+                created_dttm,
+                modified_dttm
+            ) values (
+                $1,
+                $2,
+                $3,
+                now(), 
                 null
             )
         `;
-      } else {
-        sql = `
-              INSERT INTO notesApp.TBL_USER (
-                  USERNAME,
-                  HASH,
-                  SALT,
-                  CREATED_DTTM,
-                  MODIFIED_DTTM
-              ) VALUES (
-                  ?,
-                  ?,
-                  ?,
-                  SYSDATE(), 
-                  null
-              )
-          `;
-      }
 
       // Save the user to the database
       pool.query(sql, [req.body.username, hash, salt], (error, result, fields) => {

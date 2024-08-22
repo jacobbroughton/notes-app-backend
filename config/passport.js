@@ -2,6 +2,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const validatePassword = require("../lib/passwordUtils").validatePassword;
 const pool = require("./database").pool;
+const bcrypt = require("bcrypt");
 
 // In case you dont want 'username' and 'password'
 // const customFields = {
@@ -13,28 +14,37 @@ const strategy = new LocalStrategy(
   { usernameField: "username", passwordField: "password" },
   (username, password, done) => {
     try {
-      let sql;
-
-      if (process.env.NODE_ENV === "production") {
-        sql = `
-          SELECT * FROM \`notes-app\`.TBL_USER
-          WHERE USERNAME = ?
+      let sql = `
+         select * from users
+          where username = $1
         `;
-      } else {
-        sql = `
-          SELECT * FROM notesApp.TBL_USER
-          WHERE USERNAME = ?
-        `;
-      }
 
-      pool.query(sql, [username], (err, rows) => {
-        if (err) throw err;
-        if (!rows[0]) return done(null, false);
+      pool.query(sql, [username], (err, result) => {
+        if (err) {
+          console.log(err);
+          throw err;
+        }
 
-        const isValid = validatePassword(password, rows[0].HASH, rows[0].SALT);
+        const user = result.rows[0]
+
+        if (!user) {
+          return done(null, false);
+        }
+
+        console.log("Wassup");
+        const isValid = validatePassword(password, user.hash, user.salt);
+
+        // bcrypt.compare(password, user.password, (err, res) => {
+        //   if (res) {
+        //     return done(null, user);
+        //   } else {
+        //     return done(null, false, { message: 'Incorrect password.' });
+        //   }
+        // });
 
         if (isValid) {
-          return done(null, rows[0]);
+          console.log("Yep");
+          return done(null, user);
         }
         return done(null, false, {
           message: "Username or password is incorrect",
@@ -53,24 +63,15 @@ passport.use(strategy);
 passport.serializeUser((user, done) => {
   // The user id argument is saved in the session and is later used
   // to retrieve the whole object via the deserializeUser function.
-  done(null, user.ID);
+  done(null, user.id);
 });
 
 // Grabs user from session
 passport.deserializeUser((userId, done) => {
-  let sql;
-
-  if (process.env.NODE_ENV === "production") {
-    sql = `
-      SELECT * FROM \`notes-app\`.TBL_USER
-      WHERE ID = ?
+  let sql = `
+      select * from users
+      where id = $1
     `;
-  } else {
-    sql = `
-      SELECT * FROM notesApp.TBL_USER
-      WHERE ID = ?
-    `;
-  }
 
   pool.query(sql, [userId], (err, result) => {
     if (err) {
@@ -78,7 +79,7 @@ passport.deserializeUser((userId, done) => {
       done(err, false, { error: err });
     }
 
-    const user = result[0];
+    const user = result.rows[0];
 
     done(null, user); // attaches user to req.user
   });

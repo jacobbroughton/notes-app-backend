@@ -7,24 +7,26 @@ const query = util.promisify(pool.query).bind(pool);
 router.get("/", isAuth, async (req, res) => {
   try {
     const GET_PAGES = `
-      SELECT 
+      select 
         a.*, 
-        GROUP_CONCAT(b.TAG_ID ORDER BY b.TAG_ID ASC SEPARATOR ',') TAGS 
-      FROM TBL_PAGE a
-      LEFT JOIN TBL_TAGGED_ITEM b
-        ON a.PAGE_ID = b.ITEM_ID
-        AND b.IS_PAGE = 1
-        AND b.EFF_STATUS = 1
-        AND b.CREATED_BY_ID = ?
-      LEFT JOIN TBL_TAG c
-        ON b.TAG_ID = c.ID 
-        AND c.EFF_STATUS = 1
-      WHERE a.EFF_STATUS = 1
-      AND a.CREATED_BY_ID = ?
-      GROUP BY a.PAGE_ID
+        string_agg(b.tag_id::text, ',' order by b.tag_id ASC) as tags
+      from pages a
+      LEFT JOIN tagged_items b
+        ON a.page_id = b.item_id
+        and b.is_page = 1
+        and b.eff_status = 1
+        and b.created_by_id = $1
+      LEFT JOIN tags c
+        ON b.tag_id = c.id 
+        and c.eff_status = 1
+      where a.eff_status = 1
+      and a.created_by_id = $2
+      GROUP BY a.page_id
       `;
 
-    const pages = await query(GET_PAGES, [req.user.ID, req.user.ID]);
+    const result = await query(GET_PAGES, [req.user.id, req.user.id]);
+
+    const pages = result.rows
 
     pages.forEach(
       (page) =>
@@ -42,25 +44,25 @@ router.get("/", isAuth, async (req, res) => {
 router.post("/new", isAuth, async (req, res) => {
   try {
     const sql = `
-    INSERT INTO TBL_PAGE (
-      FOLDER_ID,
-      NAME,
+    insert into pages (
+      folder_id,
+      name,
       TITLE,
-      BODY,
-      EFF_STATUS,
-      CREATED_DTTM,
-      MODIFIED_DTTM,
-      CREATED_BY_ID,
-      MODIFIED_BY_ID
-    ) VALUES (
-      ?,
-      ?,
-      ?,
-      ?,
+      body,
+      eff_status,
+      created_dttm,
+      modified_dttm,
+      created_by_id,
+      modified_by_id
+    ) values (
+      $1,
+      $2,
+      $3,
+      $4,
       1,
-      SYSDATE(),
+      now(),
       null,
-      ?,
+      $5,
       null
     )
     `;
@@ -70,7 +72,7 @@ router.post("/new", isAuth, async (req, res) => {
       req.body.newPageName,
       req.body.newPageName,
       req.body.newPageBody || "",
-      req.user.ID,
+      req.user.id,
     ]);
 
     res.send({
@@ -92,12 +94,12 @@ router.post("/edit", isAuth, async (req, res) => {
     }
 
     const UPDATE_PAGE = `
-      UPDATE TBL_PAGE
-      SET 
-      NAME = ?,
-      BODY = ?,
-      MODIFIED_DTTM = SYSDATE()
-      WHERE PAGE_ID = ?
+      update pages
+      set 
+      name = $1,
+      body = $2,
+      modified_dttm = now()
+      where page_id = $3
     `;
 
     const result = await query(UPDATE_PAGE, [
@@ -113,14 +115,14 @@ router.post("/edit", isAuth, async (req, res) => {
     }
 
     const SELECT_UPDATED_PAGE = `
-        SELECT * 
-        FROM TBL_PAGE
-        WHERE PAGE_ID = ?
-        AND EFF_STATUS = 1
+        select * 
+        from pages
+        where page_id = $1
+        and eff_status = 1
       `;
 
-    const rows = await query(SELECT_UPDATED_PAGE, [req.body.pageId]);
-    res.send({ modifiedPage: rows[0], message: "Successfully edited page" });
+    const result2 = await query(SELECT_UPDATED_PAGE, [req.body.pageId]);
+    res.send({ modifiedPage: result2.rows[0], message: "Successfully edited page" });
   } catch (err) {
     console.log(err);
   }
@@ -133,15 +135,15 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
     if (req.body.droppedOntoItem.TIER === 0) {
       newFolderId = null;
     } else {
-      newFolderId = req.body.droppedOntoItem?.ID
-        ? req.body.droppedOntoItem?.ID
-        : req.body.droppedOntoItem?.FOLDER_ID;
+      newFolderId = req.body.droppedOntoItem?.id
+        ? req.body.droppedOntoItem?.id
+        : req.body.droppedOntoItem?.folder_id;
     }
 
     const sql = `
-      UPDATE TBL_PAGE
-      SET FOLDER_ID = ${newFolderId}
-      WHERE PAGE_ID = ${req.body.affectedPage?.PAGE_ID}
+      update pages
+      set folder_id = ${newFolderId}
+      where page_id = ${req.body.affectedPage?.page_id}
     `;
 
     const result = await query(sql);
@@ -155,11 +157,11 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
 router.post("/delete", isAuth, async (req, res) => {
   try {
     const sql = `
-    UPDATE TBL_PAGE
-    SET 
-      EFF_STATUS = 0,
-      MODIFIED_DTTM = SYSDATE()
-    WHERE PAGE_ID = ?
+    update pages
+    set 
+      eff_status = 0,
+      modified_dttm = now()
+    where page_id = $1
   `;
 
     const result = await query(sql, [req.body.pageId]);
@@ -172,14 +174,14 @@ router.post("/delete", isAuth, async (req, res) => {
 
 router.post("/delete-multiple", isAuth, async (req, res) => {
   try {
-    const pageIdsForDelete = req.body.pages.map((page) => page.PAGE_ID);
+    const pageIdsForDelete = req.body.pages.map((page) => page.page_id);
 
     const sql = `
-      UPDATE TBL_PAGE
-      SET 
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE PAGE_ID IN (?)
+      update pages
+      set 
+        eff_status = 0,
+        modified_dttm = now()
+      where page_id IN ($1)
     `;
 
     const result = query(sql, [[...pageIdsForDelete]]);
@@ -197,9 +199,9 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 router.post("/rename", isAuth, async (req, res) => {
   try {
     const sql = `
-      UPDATE TBL_PAGE
-      SET NAME = ?
-      WHERE PAGE_ID = ?
+      update pages
+      set name = $1
+      where page_id = $2
       `;
 
     const result = await query(sql, [req.body.newName, req.body.pageId]);
@@ -212,14 +214,14 @@ router.post("/rename", isAuth, async (req, res) => {
 router.post("/favorite", isAuth, async (req, res) => {
   try {
     const sql = `
-      UPDATE TBL_PAGE
-      SET IS_FAVORITE = (
-        CASE 
-          WHEN ? = 1 THEN 1
-          ELSE 0
-        END
+      update pages
+      set IS_FAVORITE = (
+        case 
+          when $1 = 1 then 1
+          else 0
+        end
       )
-      WHERE PAGE_ID = ?
+      where page_id = $2
     `;
 
     const result = await query(sql, [req.body.favoriteStatus, req.body.pageId]);

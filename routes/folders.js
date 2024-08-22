@@ -11,55 +11,56 @@ const { body } = require("express-validator");
 router.get("/", isAuth, async (req, res) => {
   try {
     const SELECT_FOLDERS = `
-    SELECT 
+    select 
     a.*, 
-    GROUP_CONCAT(b.TAG_ID ORDER BY b.TAG_ID ASC SEPARATOR ',') TAGS 
-    FROM TBL_FOLDER a
-    LEFT JOIN TBL_TAGGED_ITEM b
-      ON a.ID = b.ITEM_ID
-      AND b.IS_PAGE = 0
-      AND b.EFF_STATUS = 1
-      AND b.CREATED_BY_ID = ?
-    LEFT JOIN TBL_TAG c
-      ON b.TAG_ID = c.ID 
-      AND c.EFF_STATUS = 1
-    WHERE a.EFF_STATUS = 1
-    AND a.CREATED_BY_ID = ?
-    GROUP BY a.ID
+    string_agg(b.tag_id::text, ',' order by b.tag_id ASC) AS tags
+    from folders a
+    LEFT JOIN tagged_items b
+      ON a.id = b.item_id
+      and b.is_page = 0
+      and b.eff_status = 1
+      and b.created_by_id = $1
+    LEFT JOIN tags c
+      ON b.tag_id = c.id 
+      and c.eff_status = 1
+    where a.eff_status = 1
+    and a.created_by_id = $1
+    GROUP BY a.id
     `;
 
-    let rows = await query(SELECT_FOLDERS, [req.user.ID, req.user.ID]);
+    let result = await query(SELECT_FOLDERS, [req.user.id]);
+
     let folders = [];
     let tier = 1;
 
-    const rootFolders = rows
-      .filter((folder) => folder.PARENT_FOLDER_ID === null)
+    const rootFolders = result.rows
+      .filter((folder) => folder.parent_folder_id === null)
       .map((folder) => {
         return {
           ...folder,
           TIER: tier,
         };
       })
-      .sort((a, b) => b.CREATED_DTTM - a.CREATED_DTTM);
+      .sort((a, b) => b.created_dttm - a.created_dttm);
     folders.push(...rootFolders);
 
     function determineChildren(parentFolder, allFolders, tier) {
       let children = allFolders
-        .filter((folder) => folder.PARENT_FOLDER_ID === parentFolder.ID)
+        .filter((folder) => folder.parent_folder_id === parentFolder.id)
         .map((folder) => {
           return {
             ...folder,
             TIER: tier,
           };
         })
-        .sort((a, b) => b.CREATED_DTTM - a.CREATED_DTTM);
+        .sort((a, b) => b.created_dttm - a.created_dttm);
 
       if (children.length === 0) return;
 
       let indexToAddChildren;
 
       folders.forEach((folder, index) => {
-        if (folder.ID === parentFolder.ID) indexToAddChildren = index;
+        if (folder.id === parentFolder.id) indexToAddChildren = index;
       });
 
       folders.splice(indexToAddChildren, 0, ...children);
@@ -67,7 +68,7 @@ router.get("/", isAuth, async (req, res) => {
       children.forEach((folder) => determineChildren(folder, allFolders, tier + 1));
     }
 
-    rootFolders.forEach((folder) => determineChildren(folder, rows, 2));
+    rootFolders.forEach((folder) => determineChildren(folder, folders, 2));
 
     folders.forEach((folder, index) => {
       folder.TAGS = folder.TAGS
@@ -87,21 +88,21 @@ router.get("/", isAuth, async (req, res) => {
 router.post("/new", isAuth, async (req, res, next) => {
   try {
     const sql = `
-    INSERT INTO TBL_FOLDER (
-      PARENT_FOLDER_ID,
-      NAME,
-      EFF_STATUS,
-      CREATED_DTTM,
-      MODIFIED_DTTM,
-      CREATED_BY_ID,
-      MODIFIED_BY_ID
-    ) VALUES (
-      ?,
-      ?,
-      true,
-      SYSDATE(),
+    insert into folders (
+      parent_folder_id,
+      name,
+      eff_status,
+      created_dttm,
+      modified_dttm,
+      created_by_id,
+      modified_by_id
+    ) values (
+      $1,
+      $2,
+      1,
+      now(),
       null,
-      ?,
+      $3,
       null
     )
   `;
@@ -109,7 +110,7 @@ router.post("/new", isAuth, async (req, res, next) => {
     const result = await query(sql, [
       req.body.parentFolderId,
       req.body.newFolderName,
-      req.user.ID,
+      req.user.id,
     ]);
 
     if (!result) {
@@ -129,9 +130,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function getChildren(folderId) {
       return await query(
         `
-      SELECT ID FROM TBL_FOLDER
-      WHERE PARENT_FOLDER_ID = ?
-      AND EFF_STATUS = 1
+      select id from folders
+      where parent_folder_id = $1
+      and eff_status = 1
     `,
         [folderId]
       );
@@ -140,9 +141,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function getPagesInFolder(folderId) {
       return await query(
         `
-      SELECT PAGE_ID FROM TBL_PAGE
-      WHERE FOLDER_ID = ?
-      AND EFF_STATUS = 1
+      select page_id from pages
+      where folder_id = $1
+      and eff_status = 1
     `,
         [folderId]
       );
@@ -151,11 +152,11 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function deleteFolders(folderIds) {
       return await query(
         `
-      UPDATE TBL_FOLDER
-      SET 
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE ID IN (?)
+      update folders
+      set 
+        eff_status = 0,
+        modified_dttm = now()
+      where id IN ($1)
     `,
         [...folderIds]
       );
@@ -164,11 +165,11 @@ router.post("/delete", isAuth, async (req, res, next) => {
     async function deletePages(pageIds) {
       return await query(
         `
-      UPDATE TBL_PAGE
-      SET 
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE PAGE_ID IN (?)
+      update pages
+      set 
+        eff_status = 0,
+        modified_dttm = now()
+      where page_id IN ($1)
     `,
         [...pageIds]
       );
@@ -184,12 +185,12 @@ router.post("/delete", isAuth, async (req, res, next) => {
       const pages = await getPagesInFolder(folderId);
 
       for (let i = 0; i < pages.length; i++) {
-        pagesToDelete.push(pages[i].PAGE_ID);
+        pagesToDelete.push(pages[i].page_id);
       }
 
       for (let i = 0; i < children.length; i++) {
-        foldersToDelete.push(children[i].ID);
-        await getNestedRows(children[i].ID);
+        foldersToDelete.push(children[i].id);
+        await getNestedRows(children[i].id);
       }
     }
 
@@ -211,14 +212,14 @@ router.post("/delete", isAuth, async (req, res, next) => {
 
 router.post("/delete-multiple", isAuth, async (req, res) => {
   try {
-    const folderIdsForDelete = req.body.folders.map((folder) => folder.ID);
+    const folderIdsForDelete = req.body.folders.map((folder) => folder.id);
 
     const sql = `
-      UPDATE TBL_FOLDER
-      SET 
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE ID IN (?)
+      update folders
+      set 
+        eff_status = 0,
+        modified_dttm = now()
+      where id IN ($1)
     `;
 
     const result = await query(sql, [[...folderIdsForDelete]]);
@@ -242,9 +243,9 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 router.post("/rename", isAuth, async (req, res) => {
   try {
     const sql = `
-    UPDATE TBL_FOLDER
-    SET NAME = ?
-    WHERE ID = ?
+    update folders
+    set name = $1
+    where id = $2
     `;
     const result = await query(sql, [req.body.newName, req.body.folderId]);
 

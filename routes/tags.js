@@ -1,17 +1,13 @@
 const router = require("express").Router();
-const passport = require("passport");
-const mysql = require("mysql");
-const genPassword = require("../lib/passwordUtils").genPassword;
 const pool = require("../config/database").pool;
 const isAuth = require("../authMiddleware").isAuth;
-const isAdmin = require("../authMiddleware").isAdmin;
 const util = require("util");
 const query = util.promisify(pool.query).bind(pool);
 const { body } = require("express-validator");
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    let tags = await getTags(req.user.ID);
+    let tags = await getTags(req.user.id);
 
     res.send({ tags, message: "Successfully fetched tags" });
   } catch (err) {
@@ -22,10 +18,10 @@ router.get("/", isAuth, async (req, res) => {
 router.get("/color-options", isAuth, async (req, res) => {
   try {
     const GET_DEFAULT_COLORS = `
-    SELECT *, 
-    1 IS_DEFAULT_COLOR
-    FROM TBL_DEFAULT_COLOR_OPTION
-    WHERE EFF_STATUS = 1
+    select *, 
+    1 is_default_color
+    from default_color_options
+    where eff_status = 1
   `;
 
     const defaultOptions = await query(GET_DEFAULT_COLORS);
@@ -37,13 +33,13 @@ router.get("/color-options", isAuth, async (req, res) => {
     }
 
     const GET_USER_CREATED_COLORS = `
-    SELECT *,
-    0 IS_DEFAULT_COLOR FROM TBL_USER_CREATED_COLOR_OPTION 
-    WHERE CREATED_BY_ID = ?
-    AND EFF_STATUS = 1
+    select *,
+    0 is_default_color from user_created_color_options 
+    where created_by_id = $1
+    and eff_status = 1
   `;
 
-    const userCreatedOptions = await query(GET_USER_CREATED_COLORS, [req.user.ID]);
+    const userCreatedOptions = await query(GET_USER_CREATED_COLORS, [req.user.id]);
 
     if (!userCreatedOptions) {
       res.statusText = "Failed to fetch user created color options";
@@ -66,15 +62,14 @@ router.post("/color-options/new", isAuth, async (req, res) => {
   try {
     // Check if color exists already
     const CHECK_IF_EXISTS = `
-      SELECT * FROM TBL_USER_CREATED_COLOR_OPTION 
-      WHERE COLOR_CODE = ? AND CREATED_BY_ID = ?
+      select * from user_created_color_options 
+      where color_code = $1 and created_by_id = $2
     `;
 
     // If exists, throw error
     const existingColor = await query(CHECK_IF_EXISTS, [
       req.body.colorCode,
-      req.user.ID,
-      req.body.colorCode,
+      req.user.id
     ]);
 
     if (existingColor.length > 0) {
@@ -85,27 +80,27 @@ router.post("/color-options/new", isAuth, async (req, res) => {
       }
     }
 
-    // Otherwise, add to TBL_USER_CREATED_COLOR_OPTION
+    // Otherwise, add to user_created_color_options
     const ADD_TO_CUSTOM_COLORS = `
-      INSERT INTO TBL_USER_CREATED_COLOR_OPTION
+      insert into user_created_color_options
       (
-        COLOR_CODE,
-        EFF_STATUS,
-        CREATED_DTTM,
-        MODIFIED_DTTM, 
-        CREATED_BY_ID,
-        MODIFIED_BY_ID
-      ) VALUES (
-        ?,
+        color_code,
+        eff_status,
+        created_dttm,
+        modified_dttm, 
+        created_by_id,
+        modified_by_id
+      ) values (
+        $1,
         1,
-        SYSDATE(),
+        now(),
         null,
-        ?,
+        $2,
         null
       )
     `;
 
-    const result = await query(ADD_TO_CUSTOM_COLORS, [req.body.colorCode, req.user.ID]);
+    const result = await query(ADD_TO_CUSTOM_COLORS, [req.body.colorCode, req.user.id]);
 
     if (!result) {
       res.statusText = "There was an error adding to your custom colors";
@@ -114,15 +109,15 @@ router.post("/color-options/new", isAuth, async (req, res) => {
     }
 
     const GET_CREATED_COLOR = `
-    SELECT *,
-    0 IS_DEFAULT_COLOR
-    FROM TBL_USER_CREATED_COLOR_OPTION
-    WHERE ID = ? AND CREATED_BY_ID = ?
+    select *,
+    0 is_default_color
+    from user_created_color_options
+    where id = $1 and created_by_id = $2
   `;
 
     const [justCreatedColor] = await query(GET_CREATED_COLOR, [
       result.insertId,
-      req.user.ID,
+      req.user.id,
     ]);
 
     if (!justCreatedColor) {
@@ -144,14 +139,14 @@ router.post("/color-options/new", isAuth, async (req, res) => {
 router.post("/color-options/delete", isAuth, async (req, res) => {
   try {
     const DISABLE_COLOR = `
-    UPDATE TBL_USER_CREATED_COLOR_OPTION
-    SET 
-      EFF_STATUS = 0,
-      MODIFIED_DTTM = SYSDATE()
-    WHERE ID = ? AND CREATED_BY_ID = ?
+    update user_created_color_options
+    set 
+      eff_status = 0,
+      modified_dttm = now()
+    where id = $1 and created_by_id = $2
   `;
 
-    const result1 = await query(DISABLE_COLOR, [req.body.colorId, req.user.ID]);
+    const result1 = await query(DISABLE_COLOR, [req.body.colorId, req.user.id]);
 
     console.log(result1);
 
@@ -162,14 +157,14 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
     }
 
     const UPDATE_ASSOCIATED_TAGS = `
-    UPDATE [TBL_TAGGED_ITEM]
-    SET 
-      EFF_STATUS = 0,
-      MODIFIED_DTTM = SYSDATE()
-    WHERE COLOR_ID = ? 
+    update [tagged_items]
+    set 
+      eff_status = 0,
+      modified_dttm = now()
+    where color_id = $1
     `;
 
-    const result2 = await query(UPDATE_ASSOCIATED_TAGS, [req.body.colorId, req.user.ID]);
+    const result2 = await query(UPDATE_ASSOCIATED_TAGS, [req.body.colorId]);
 
     res.send({
       result: result2,
@@ -183,51 +178,51 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
 
 router.post("/tag-item", isAuth, async (req, res) => {
   try {
-    const itemId = req.body.item.IS_PAGE ? req.body.item.PAGE_ID : req.body.item.ID;
+    const itemId = req.body.item.is_page ? req.body.item.page_id : req.body.item.id;
 
     const DETERMINE_IF_TAGGED_ALREADY = `
-    SELECT * FROM TBL_TAGGED_ITEM
-    WHERE ITEM_ID = ?
-    AND TAG_ID = ?
+    select * from tagged_items
+    where item_id = $1
+    and tag_id = $2
   `;
 
     const [existingMatchingTag] = await query(DETERMINE_IF_TAGGED_ALREADY, [
       itemId,
-      req.body.tag.ID,
+      req.body.tag.id,
     ]);
 
-    if (req.body.item.IS_PAGE) {
+    if (req.body.item.is_page) {
       let result;
       let message = "";
 
       if (existingMatchingTag) {
-        if (existingMatchingTag.EFF_STATUS) {
+        if (existingMatchingTag.eff_status) {
           const DISABLE_ENABLED_TAGGED_ITEM = `
-            UPDATE TBL_TAGGED_ITEM
-            SET 
-              EFF_STATUS = 0,
-              MODIFIED_DTTM = SYSDATE()
-            WHERE ID = ?
+            update tagged_items
+            set 
+              eff_status = 0,
+              modified_dttm = now()
+            where id = $1
           `;
 
-          result = await query(DISABLE_ENABLED_TAGGED_ITEM, [existingMatchingTag.ID]);
+          result = await query(DISABLE_ENABLED_TAGGED_ITEM, [existingMatchingTag.id]);
           message = "Tag successfully disabled";
         } else {
           const ENABLE_DISABLED_TAGGED_ITEM = `
-            UPDATE TBL_TAGGED_ITEM
-            SET EFF_STATUS = 1
-            WHERE ID = ?
+            update tagged_items
+            set eff_status = 1
+            where id = $1
           `;
 
-          result = await query(ENABLE_DISABLED_TAGGED_ITEM, [existingMatchingTag.ID]);
+          result = await query(ENABLE_DISABLED_TAGGED_ITEM, [existingMatchingTag.id]);
           message = "Tag successfully enabled";
         }
       } else {
         result = await addTaggedItem(
-          req.body.tag.ID,
+          req.body.tag.id,
           itemId,
-          req.body.item.IS_PAGE,
-          req.user.ID
+          req.body.item.is_page,
+          req.user.id
         );
         message = "Tag successfully added";
       }
@@ -235,14 +230,14 @@ router.post("/tag-item", isAuth, async (req, res) => {
       res.send({ result, message: "Successfully updated existing tagged page" });
     } else {
       const GET_FOLDERS = `
-        SELECT 
+        select 
         *
-        FROM TBL_FOLDER
-        WHERE EFF_STATUS = 1
-        AND CREATED_BY_ID = ?
+        from folders
+        where eff_status = 1
+        and created_by_id = $1
         `;
 
-      let allFoldersByUser = await query(GET_FOLDERS, [req.user.ID]);
+      let allFoldersByUser = await query(GET_FOLDERS, [req.user.id]);
 
       let affectedFolderIds = [];
 
@@ -250,42 +245,42 @@ router.post("/tag-item", isAuth, async (req, res) => {
         affectedFolderIds.push(folderIdToCheck);
 
         const children = allFoldersByUser
-          .filter((folder) => folder.PARENT_FOLDER_ID === folderIdToCheck)
-          .map((folder) => folder.ID);
+          .filter((folder) => folder.parent_folder_id === folderIdToCheck)
+          .map((folder) => folder.id);
 
         if (children.length === 0) return;
 
         children.forEach((folderId) => getChildren(folderId));
       }
 
-      getChildren(req.body.item.ID);
+      getChildren(req.body.item.id);
 
       const GET_CHILD_PAGES = `
-        SELECT * 
-        FROM TBL_PAGE 
-        WHERE FOLDER_ID IN(?)
-        AND EFF_STATUS = 1
-        AND CREATED_BY_ID = ?
+        select * 
+        from pages 
+        where folder_id in($1)
+        and eff_status = 1
+        and created_by_id = $2
       `;
 
-      let childPages = await query(GET_CHILD_PAGES, [affectedFolderIds, req.user.ID]);
+      let childPages = await query(GET_CHILD_PAGES, [affectedFolderIds, req.user.id]);
 
-      let childPageIds = childPages.map((page) => page.PAGE_ID);
+      let childPageIds = childPages.map((page) => page.page_id);
 
       const GET_ASSOCIATED_FOLDER_TAGS = `
-      SELECT * FROM TBL_TAGGED_ITEM
-      WHERE TAG_ID = ?
-      AND IS_PAGE = 0
-      AND ITEM_ID IN(?)
+      select * from tagged_items
+      where tag_id = $1
+      and is_page = 0
+      and item_id in($2)
     `;
 
       const associatedFolderTags = await query(GET_ASSOCIATED_FOLDER_TAGS, [
-        req.body.tag.ID,
+        req.body.tag.id,
         affectedFolderIds,
       ]);
 
       const associatedFolderTagIds = associatedFolderTags.map(
-        (taggedFolder) => taggedFolder.ID
+        (taggedFolder) => taggedFolder.id
       );
 
       let associatedPageTags = [];
@@ -295,41 +290,40 @@ router.post("/tag-item", isAuth, async (req, res) => {
 
       if (childPageIds.length > 0) {
         const GET_ASSOCIATED_PAGE_TAGS = `
-          SELECT * FROM TBL_TAGGED_ITEM
-          WHERE TAG_ID = ?
-          AND IS_PAGE = 1
-          AND CASE
-            WHEN ?=1 THEN ITEM_ID IN(?)
-            ELSE 1=1
-          END
+          select * from tagged_items
+          where tag_id = $1
+          and is_page = 1
+          and case
+            when $2=1 then item_id in($3)
+            else 1=1
+          end
         `;
 
         associatedPageTags = await query(GET_ASSOCIATED_PAGE_TAGS, [
-          req.body.tag.ID,
+          req.body.tag.id,
           childPageIds.length !== 0 ? 1 : 0,
           childPageIds.length !== 0 ? childPageIds : "null",
         ]);
 
         console.log("associatedPageTags1", associatedPageTags);
 
-        associatedPageTagIds = associatedPageTags.map((taggedPage) => taggedPage.ID);
+        associatedPageTagIds = associatedPageTags.map((taggedPage) => taggedPage.id);
       }
 
       if (existingMatchingTag && associatedFolderTags.length > 0) {
-        console.log("yes");
 
         const UPDATE_EXISTING_TAGGED_FOLDERS = `
-          UPDATE TBL_TAGGED_ITEM
-          SET 
-            EFF_STATUS = (
-              CASE 
-                WHEN ? = 1 THEN 1
-                ELSE 0
-              END
+          update tagged_items
+          set 
+            eff_status = (
+              case 
+                when $1 = 1 then 1
+                else 0
+              end
             ),
-            MODIFIED_DTTM = SYSDATE()
-          WHERE ID IN(?)
-          AND IS_PAGE = 0
+            modified_dttm = now()
+          where id in($2)
+          and is_page = 0
         `;
 
         let result = await query(UPDATE_EXISTING_TAGGED_FOLDERS, [
@@ -345,17 +339,17 @@ router.post("/tag-item", isAuth, async (req, res) => {
 
         if (associatedPageTags.length > 0) {
           const UPDATE_EXISTING_TAGGED_PAGES = `
-            UPDATE TBL_TAGGED_ITEM
-            SET 
-              EFF_STATUS = (
-                CASE 
-                  WHEN ? = 1 THEN 1
-                  ELSE 0
-                END
+            update tagged_items
+            set 
+              eff_status = (
+                case 
+                  when $1 = 1 then 1
+                  else 0
+                end
               ),
-              MODIFIED_DTTM = SYSDATE()
-            WHERE ID IN(?)
-            AND IS_PAGE = 1
+              modified_dttm = now()
+            where id in($2)
+            and is_page = 1
           `;
 
           result = await query(UPDATE_EXISTING_TAGGED_PAGES, [
@@ -375,54 +369,54 @@ router.post("/tag-item", isAuth, async (req, res) => {
         console.log("associatedPageTags", associatedPageTags);
 
         const INSERT_NEW_TAGGED_ITEMS = `
-          INSERT INTO TBL_TAGGED_ITEM (
-            TAG_ID,
-            ITEM_ID,
-            IS_PAGE,
-            EFF_STATUS,
-            CREATED_DTTM,
-            MODIFIED_DTTM,
-            CREATED_BY_ID,
-            MODIFIED_BY_ID
-          ) VALUES ?
+          insert into tagged_items (
+            tag_id,
+            item_id,
+            is_page,
+            eff_status,
+            created_dttm,
+            modified_dttm,
+            created_by_id,
+            modified_by_id
+          ) values $1
         `;
 
         const SYSDATE = {
           toSqlString: function () {
-            return "SYSDATE()";
+            return "now()";
           },
         };
 
         const associatedFolderTagTagIds = associatedFolderTags.map(
-          (taggedItem) => taggedItem.ITEM_ID
+          (taggedItem) => taggedItem.item_id
         );
         const associatedPageTagTagIds = associatedPageTags.map(
-          (taggedItem) => taggedItem.ITEM_ID
+          (taggedItem) => taggedItem.item_id
         );
 
         let newItemsArray = [
           ...affectedFolderIds
             .filter((folderId) => !associatedFolderTagTagIds.includes(folderId))
             .map((folderId) => [
-              req.body.tag.ID,
+              req.body.tag.id,
               folderId,
               0,
               1,
               SYSDATE,
               null,
-              req.user.ID,
+              req.user.id,
               null,
             ]),
           ...childPageIds
             .filter((pageId) => !associatedPageTagTagIds.includes(pageId))
             .map((pageId) => [
-              req.body.tag.ID,
+              req.body.tag.id,
               pageId,
               1,
               1,
               SYSDATE,
               null,
-              req.user.ID,
+              req.user.id,
               null,
             ]),
         ];
@@ -446,14 +440,14 @@ router.post("/tag-item", isAuth, async (req, res) => {
 router.post("/new", isAuth, async (req, res) => {
   try {
     const SEARCH_FOR_EXISTING_TAG = `
-      SELECT * FROM TBL_TAG 
-      WHERE NAME = ?
-      AND CREATED_BY_ID = ?
+      select * from tags 
+      where name = $1
+      and created_by_id = $2
     `;
 
     let [existingTag] = await query(SEARCH_FOR_EXISTING_TAG, [
       req.body.name,
-      req.user.ID,
+      req.user.id,
     ]);
 
     if (existingTag) {
@@ -465,19 +459,19 @@ router.post("/new", isAuth, async (req, res) => {
     let GET_TAG_COLOR = ``;
     let sqlParams = [];
 
-    if (req.body.color.IS_DEFAULT_COLOR) {
-      sqlParams.push(req.body.color.ID);
+    if (req.body.color.is_default_color) {
+      sqlParams.push(req.body.color.id);
       GET_TAG_COLOR = `
-        SELECT * FROM TBL_DEFAULT_COLOR_OPTION
-        WHERE ID = ?
+        select * from default_color_options
+        where id = $1
         LIMIT 1;
       `;
     } else {
-      sqlParams.push(req.body.color.ID, req.user.ID);
+      sqlParams.push(req.body.color.id, req.user.id);
       GET_TAG_COLOR = `
-        SELECT * FROM TBL_USER_CREATED_COLOR_OPTION 
-        WHERE ID = ?
-        AND CREATED_BY_ID = ?
+        select * from user_created_color_options 
+        where id = $1
+        and created_by_id = $2
         LIMIT 1;
       `;
     }
@@ -491,32 +485,32 @@ router.post("/new", isAuth, async (req, res) => {
     }
 
     const CREATE_TAG = `
-      INSERT INTO TBL_TAG (
-        NAME,
-        COLOR_ID,
+      insert into tags (
+        name,
+        color_id,
         HAS_DEFAULT_COLOR,
-        EFF_STATUS,
-        CREATED_DTTM,
-        MODIFIED_DTTM,
-        CREATED_BY_ID,
-        MODIFIED_BY_ID
-      ) VALUES (
-        ?,
-        ?,
-        ?,
+        eff_status,
+        created_dttm,
+        modified_dttm,
+        created_by_id,
+        modified_by_id
+      ) values (
+        $1,
+        $2,
+        $3,
         1,
-        SYSDATE(),
+        now(),
         null,
-        ?,
+        $4,
         null
       )
     `;
 
     let result = await query(CREATE_TAG, [
       req.body.name,
-      tagColor.ID,
-      req.body.color.IS_DEFAULT_COLOR,
-      req.user.ID,
+      tagColor.id,
+      req.body.color.is_default_color,
+      req.user.id,
     ]);
 
     if (!result) {
@@ -525,7 +519,7 @@ router.post("/new", isAuth, async (req, res) => {
       return;
     }
 
-    const [justCreatedTag] = await getSingleTag(req.user.ID, result.insertId);
+    const [justCreatedTag] = await getSingleTag(req.user.id, result.insertId);
 
     if (!justCreatedTag) {
       res.statusMessage = "There was a problem getting revcently created tag";
@@ -537,10 +531,10 @@ router.post("/new", isAuth, async (req, res) => {
 
     if (req.body.isForItem) {
       await addTaggedItem(
-        justCreatedTag.ID,
-        itemFromRequest.IS_PAGE ? itemFromRequest.PAGE_ID : itemFromRequest.ID,
-        itemFromRequest.IS_PAGE,
-        req.user.ID
+        justCreatedTag.id,
+        itemFromRequest.is_page ? itemFromRequest.page_id : itemFromRequest.id,
+        itemFromRequest.is_page,
+        req.user.id
       );
     }
 
@@ -557,18 +551,18 @@ router.post("/new", isAuth, async (req, res) => {
 router.post("/edit", isAuth, async (req, res) => {
   try {
     const UPDATE_TAG = `
-      UPDATE TBL_TAG 
-      SET
-        NAME = ?,
-        COLOR_ID = ?,
-        HAS_DEFAULT_COLOR = ?
-      WHERE ID = ?
+      update tags 
+      set
+        name = $1,
+        color_id = $2,
+        HAS_DEFAULT_COLOR = $3
+      where id = $4
     `;
 
     const result = await query(UPDATE_TAG, [
       req.body.name,
-      req.body.color.ID,
-      req.body.color.IS_DEFAULT_COLOR,
+      req.body.color.id,
+      req.body.color.is_default_color,
       req.body.id,
     ]);
 
@@ -578,7 +572,7 @@ router.post("/edit", isAuth, async (req, res) => {
       return;
     }
 
-    const [justUpdatedTag] = await getSingleTag(req.user.ID, req.body.id);
+    const [justUpdatedTag] = await getSingleTag(req.user.id, req.body.id);
 
     if (!justUpdatedTag) {
       res.statusMessage = "There was an issue getting the tag that was just updated";
@@ -595,15 +589,15 @@ router.post("/edit", isAuth, async (req, res) => {
 router.post("/delete", isAuth, async (req, res) => {
   try {
     const DELETE_TAG = `
-      UPDATE TBL_TAG 
-      SET
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE ID = ?
-      AND CREATED_BY_ID = ?
+      update tags 
+      set
+        eff_status = 0,
+        modified_dttm = now()
+      where id = $1
+      and created_by_id = $2
     `;
 
-    const result1 = await query(DELETE_TAG, [req.body.id, req.user.ID]);
+    const result1 = await query(DELETE_TAG, [req.body.id, req.user.id]);
 
     if (!result1) {
       res.statusMessage = "There was an error deleting tag";
@@ -612,15 +606,15 @@ router.post("/delete", isAuth, async (req, res) => {
     }
 
     const UPDATE_TAGGED_ITEMS = `
-      UPDATE TBL_TAGGED_ITEM
-      SET 
-        EFF_STATUS = 0,
-        MODIFIED_DTTM = SYSDATE()
-      WHERE TAG_ID = ?
-      AND CREATED_BY_ID = ?
+      update tagged_items
+      set 
+        eff_status = 0,
+        modified_dttm = now()
+      where tag_id = $1
+      and created_by_id = $2
     `;
 
-    const result2 = await query(UPDATE_TAGGED_ITEMS, [req.body.id, req.user.ID]);
+    const result2 = await query(UPDATE_TAGGED_ITEMS, [req.body.id, req.user.id]);
 
     res.send({ result: result2, message: "Tag successfully deleted" });
   } catch (err) {
@@ -630,45 +624,45 @@ router.post("/delete", isAuth, async (req, res) => {
 
 async function getTags(reqUserId) {
   const sql = `
-    SELECT a.*, 
-    CASE
-      WHEN b.COLOR_CODE IS NOT NULL THEN b.COLOR_CODE
-      WHEN c.COLOR_CODE IS NOT NULL THEN c.COLOR_CODE
-      ELSE '#000000'
-    END AS COLOR_CODE
-    FROM TBL_TAG a
-    LEFT JOIN TBL_DEFAULT_COLOR_OPTION b
-    ON a.COLOR_ID = b.ID
-    AND b.EFF_STATUS = 1
-    LEFT JOIN TBL_USER_CREATED_COLOR_OPTION c
-    ON a.COLOR_ID = c.ID
-    AND c.CREATED_BY_ID = ?
-    AND c.EFF_STATUS = 1
-    WHERE a.EFF_STATUS = 1 
-    AND a.CREATED_BY_ID = ?
+    select a.*, 
+    case
+      when b.color_code IS NOT NULL then b.color_code
+      when c.color_code IS NOT NULL then c.color_code
+      else '#000000'
+    end AS color_code
+    from tags a
+    LEFT JOIN default_color_options b
+    ON a.color_id = b.id
+    and b.eff_status = 1
+    LEFT JOIN user_created_color_options c
+    ON a.color_id = c.id
+    and c.created_by_id = $1
+    and c.eff_status = 1
+    where a.eff_status = 1 
+    and a.created_by_id = $2
   `;
 
-  return query(sql, [reqUserId, reqUserId, reqUserId]);
+  return query(sql, [reqUserId, reqUserId]);
 }
 
 async function getSingleTag(reqUserId, tagId) {
   const sql = `
-    SELECT a.*,
-    CASE 
-      WHEN a.HAS_DEFAULT_COLOR = 1 THEN b.COLOR_CODE
-      ELSE c.COLOR_CODE
-    END COLOR_CODE
-    FROM TBL_TAG a
-    LEFT JOIN TBL_DEFAULT_COLOR_OPTION b
-    ON a.COLOR_ID = b.ID
-    AND b.EFF_STATUS = 1
-    LEFT JOIN TBL_USER_CREATED_COLOR_OPTION c
-    ON a.COLOR_ID = c.ID
-    AND c.EFF_STATUS = 1
-    AND c.CREATED_BY_ID = ?
-    WHERE a.EFF_STATUS = 1 
-    AND a.CREATED_BY_ID = ?
-    AND a.ID = ?
+    select a.*,
+    case 
+      when a.HAS_DEFAULT_COLOR = 1 then b.color_code
+      else c.color_code
+    end color_code
+    from tags a
+    LEFT JOIN default_color_options b
+    ON a.color_id = b.id
+    and b.eff_status = 1
+    LEFT JOIN user_created_color_options c
+    ON a.color_id = c.id
+    and c.eff_status = 1
+    and c.created_by_id = $1
+    where a.eff_status = 1 
+    and a.created_by_id = $2
+    and a.id = $3
     LIMIT 1
   `;
 
@@ -677,23 +671,23 @@ async function getSingleTag(reqUserId, tagId) {
 
 async function addTaggedItem(tagId, itemId, itemIsPage, userId) {
   const ADD_TAGGED_ITEM = `
-  INSERT INTO TBL_TAGGED_ITEM (
-    TAG_ID,
-    ITEM_ID,
-    IS_PAGE,
-    EFF_STATUS,
-    CREATED_DTTM,
-    MODIFIED_DTTM,
-    CREATED_BY_ID,
-    MODIFIED_BY_ID
-  ) VALUES (
-    ?,
-    ?,
-    ?,
+  insert into tagged_items (
+    tag_id,
+    item_id,
+    is_page,
+    eff_status,
+    created_dttm,
+    modified_dttm,
+    created_by_id,
+    modified_by_id
+  ) values (
+    $1,
+    $2,
+    $3,
     1,
-    SYSDATE(),
+    now(),
     NULL,
-    ?,
+    $4,
     NULL
   )
 `;
