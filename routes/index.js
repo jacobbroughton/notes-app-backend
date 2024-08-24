@@ -1,9 +1,18 @@
-const router = require("express").Router();
-const passport = require("passport");
-const genPassword = require("../lib/passwordUtils").genPassword;
-const pool = require("../config/database").pool;
-const isAuth = require("../authMiddleware").isAuth;
-const isAdmin = require("../authMiddleware").isAdmin;
+// const router = require("express").Router();
+// const passport = require("passport");
+// const genPassword = require("../lib/passwordUtils").genPassword;
+// const pool = require("../config/database").pool;
+// const isAuth = require("../authMiddleware").isAuth;
+// const isAdmin = require("../authMiddleware").isAdmin;
+
+import express from "express"
+import passport from "passport"
+import { genPassword } from "../lib/passwordUtils.js";
+import {pool} from "../config/database.js"
+import { isAuth, isAdmin } from "../authMiddleware.js";
+import util from "util"
+
+const router = express.Router()
 
 router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
@@ -101,4 +110,4 @@ router.get("/logout", (req, res, next) => {
   });
 });
 
-module.exports = router;
+export default router

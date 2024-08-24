@@ -1,4 +1,4 @@
-module.exports.isAuth = function (req, res, next) {
+export const isAuth = function (req, res, next) {
   if (req.user) {
     next(); // moves on
   } else {
@@ -10,7 +10,7 @@ module.exports.isAuth = function (req, res, next) {
   }
 };
 
-module.exports.isAdmin = function (req, res, next) {
+export const isAdmin = function (req, res, next) {
   if (req.isAuthenticated() && req.user.ADMIN) {
     next(); // moves on
   } else {

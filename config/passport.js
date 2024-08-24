@@ -1,25 +1,18 @@
-const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
-const validatePassword = require("../lib/passwordUtils").validatePassword;
-const pool = require("./database").pool;
-const bcrypt = require("bcrypt");
-
-// In case you dont want 'username' and 'password'
-// const customFields = {
-//   usernameField: "uname",
-//   passwordField: "pw",
-// };
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { validatePassword } from "../lib/passwordUtils.js";
+import { pool } from "./database.js";
 
 const strategy = new LocalStrategy(
   { usernameField: "username", passwordField: "password" },
-  (username, password, done) => {
+  async (username, password, done) => {
     try {
       let sql = `
          select * from users
           where username = $1
         `;
 
-      pool.query(sql, [username], (err, result) => {
+      await pool.query(sql, [username], (err, result) => {
         if (err) {
           console.log(err);
           throw err;

@@ -1,9 +1,17 @@
-const router = require("express").Router();
-const pool = require("../config/database").pool;
-const isAuth = require("../authMiddleware").isAuth;
-const util = require("util");
-const query = util.promisify(pool.query).bind(pool);
-const { body } = require("express-validator");
+// const router = require("express").Router();
+// const pool = require("../config/database.js").pool;
+// const isAuth = require("../authMiddleware.js").isAuth;
+// const util = require("util");
+// const query = util.promisify(pool.query).bind(pool);
+// const { body } = require("express-validator");
+
+import express from "express";
+import { pool } from "../config/database.js";
+import { isAuth } from "../authMiddleware.js";
+import util from "util";
+import { body } from "express-validator";
+
+const router = express.Router();
 
 router.get("/", isAuth, async (req, res) => {
   try {
@@ -24,7 +32,7 @@ router.get("/color-options", isAuth, async (req, res) => {
     where eff_status = 1
   `;
 
-    const defaultOptions = await query(GET_DEFAULT_COLORS);
+    const defaultOptions = await pool.query(GET_DEFAULT_COLORS);
 
     if (!defaultOptions) {
       res.statusText = "Failed to fetch default color options";
@@ -39,7 +47,7 @@ router.get("/color-options", isAuth, async (req, res) => {
     and eff_status = 1
   `;
 
-    const userCreatedOptions = await query(GET_USER_CREATED_COLORS, [req.user.id]);
+    const userCreatedOptions = await pool.query(GET_USER_CREATED_COLORS, [req.user.id]);
 
     if (!userCreatedOptions) {
       res.statusText = "Failed to fetch user created color options";
@@ -67,9 +75,9 @@ router.post("/color-options/new", isAuth, async (req, res) => {
     `;
 
     // If exists, throw error
-    const existingColor = await query(CHECK_IF_EXISTS, [
+    const existingColor = await pool.query(CHECK_IF_EXISTS, [
       req.body.colorCode,
-      req.user.id
+      req.user.id,
     ]);
 
     if (existingColor.length > 0) {
@@ -100,7 +108,10 @@ router.post("/color-options/new", isAuth, async (req, res) => {
       )
     `;
 
-    const result = await query(ADD_TO_CUSTOM_COLORS, [req.body.colorCode, req.user.id]);
+    const result = await pool.query(ADD_TO_CUSTOM_COLORS, [
+      req.body.colorCode,
+      req.user.id,
+    ]);
 
     if (!result) {
       res.statusText = "There was an error adding to your custom colors";
@@ -115,7 +126,7 @@ router.post("/color-options/new", isAuth, async (req, res) => {
     where id = $1 and created_by_id = $2
   `;
 
-    const [justCreatedColor] = await query(GET_CREATED_COLOR, [
+    const [justCreatedColor] = await pool.query(GET_CREATED_COLOR, [
       result.insertId,
       req.user.id,
     ]);
@@ -146,7 +157,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
     where id = $1 and created_by_id = $2
   `;
 
-    const result1 = await query(DISABLE_COLOR, [req.body.colorId, req.user.id]);
+    const result1 = await pool.query(DISABLE_COLOR, [req.body.colorId, req.user.id]);
 
     console.log(result1);
 
@@ -164,7 +175,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
     where color_id = $1
     `;
 
-    const result2 = await query(UPDATE_ASSOCIATED_TAGS, [req.body.colorId]);
+    const result2 = await pool.query(UPDATE_ASSOCIATED_TAGS, [req.body.colorId]);
 
     res.send({
       result: result2,
@@ -186,7 +197,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
     and tag_id = $2
   `;
 
-    const [existingMatchingTag] = await query(DETERMINE_IF_TAGGED_ALREADY, [
+    const [existingMatchingTag] = await pool.query(DETERMINE_IF_TAGGED_ALREADY, [
       itemId,
       req.body.tag.id,
     ]);
@@ -205,7 +216,9 @@ router.post("/tag-item", isAuth, async (req, res) => {
             where id = $1
           `;
 
-          result = await query(DISABLE_ENABLED_TAGGED_ITEM, [existingMatchingTag.id]);
+          result = await pool.query(DISABLE_ENABLED_TAGGED_ITEM, [
+            existingMatchingTag.id,
+          ]);
           message = "Tag successfully disabled";
         } else {
           const ENABLE_DISABLED_TAGGED_ITEM = `
@@ -214,7 +227,9 @@ router.post("/tag-item", isAuth, async (req, res) => {
             where id = $1
           `;
 
-          result = await query(ENABLE_DISABLED_TAGGED_ITEM, [existingMatchingTag.id]);
+          result = await pool.query(ENABLE_DISABLED_TAGGED_ITEM, [
+            existingMatchingTag.id,
+          ]);
           message = "Tag successfully enabled";
         }
       } else {
@@ -237,7 +252,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
         and created_by_id = $1
         `;
 
-      let allFoldersByUser = await query(GET_FOLDERS, [req.user.id]);
+      let allFoldersByUser = await pool.query(GET_FOLDERS, [req.user.id]);
 
       let affectedFolderIds = [];
 
@@ -263,7 +278,10 @@ router.post("/tag-item", isAuth, async (req, res) => {
         and created_by_id = $2
       `;
 
-      let childPages = await query(GET_CHILD_PAGES, [affectedFolderIds, req.user.id]);
+      let childPages = await pool.query(GET_CHILD_PAGES, [
+        affectedFolderIds,
+        req.user.id,
+      ]);
 
       let childPageIds = childPages.map((page) => page.page_id);
 
@@ -274,7 +292,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
       and item_id in($2)
     `;
 
-      const associatedFolderTags = await query(GET_ASSOCIATED_FOLDER_TAGS, [
+      const associatedFolderTags = await pool.query(GET_ASSOCIATED_FOLDER_TAGS, [
         req.body.tag.id,
         affectedFolderIds,
       ]);
@@ -299,7 +317,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
           end
         `;
 
-        associatedPageTags = await query(GET_ASSOCIATED_PAGE_TAGS, [
+        associatedPageTags = await pool.query(GET_ASSOCIATED_PAGE_TAGS, [
           req.body.tag.id,
           childPageIds.length !== 0 ? 1 : 0,
           childPageIds.length !== 0 ? childPageIds : "null",
@@ -311,7 +329,6 @@ router.post("/tag-item", isAuth, async (req, res) => {
       }
 
       if (existingMatchingTag && associatedFolderTags.length > 0) {
-
         const UPDATE_EXISTING_TAGGED_FOLDERS = `
           update tagged_items
           set 
@@ -326,7 +343,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
           and is_page = 0
         `;
 
-        let result = await query(UPDATE_EXISTING_TAGGED_FOLDERS, [
+        let result = await pool.query(UPDATE_EXISTING_TAGGED_FOLDERS, [
           req.body.toggleState,
           associatedFolderTagIds,
         ]);
@@ -352,7 +369,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
             and is_page = 1
           `;
 
-          result = await query(UPDATE_EXISTING_TAGGED_PAGES, [
+          result = await pool.query(UPDATE_EXISTING_TAGGED_PAGES, [
             req.body.toggleState,
             associatedPageTagIds,
           ]);
@@ -421,7 +438,7 @@ router.post("/tag-item", isAuth, async (req, res) => {
             ]),
         ];
 
-        const result = await query(INSERT_NEW_TAGGED_ITEMS, [newItemsArray]);
+        const result = await pool.query(INSERT_NEW_TAGGED_ITEMS, [newItemsArray]);
 
         if (!result) {
           res.statusMessage = "There was an issue adding new tagged items";
@@ -445,7 +462,7 @@ router.post("/new", isAuth, async (req, res) => {
       and created_by_id = $2
     `;
 
-    let [existingTag] = await query(SEARCH_FOR_EXISTING_TAG, [
+    let [existingTag] = await pool.query(SEARCH_FOR_EXISTING_TAG, [
       req.body.name,
       req.user.id,
     ]);
@@ -476,7 +493,7 @@ router.post("/new", isAuth, async (req, res) => {
       `;
     }
 
-    const [tagColor] = await query(GET_TAG_COLOR, sqlParams);
+    const [tagColor] = await pool.query(GET_TAG_COLOR, sqlParams);
 
     if (!tagColor) {
       res.statusText = "Tag color not found";
@@ -506,7 +523,7 @@ router.post("/new", isAuth, async (req, res) => {
       )
     `;
 
-    let result = await query(CREATE_TAG, [
+    let result = await pool.query(CREATE_TAG, [
       req.body.name,
       tagColor.id,
       req.body.color.is_default_color,
@@ -559,7 +576,7 @@ router.post("/edit", isAuth, async (req, res) => {
       where id = $4
     `;
 
-    const result = await query(UPDATE_TAG, [
+    const result = await pool.query(UPDATE_TAG, [
       req.body.name,
       req.body.color.id,
       req.body.color.is_default_color,
@@ -597,7 +614,7 @@ router.post("/delete", isAuth, async (req, res) => {
       and created_by_id = $2
     `;
 
-    const result1 = await query(DELETE_TAG, [req.body.id, req.user.id]);
+    const result1 = await pool.query(DELETE_TAG, [req.body.id, req.user.id]);
 
     if (!result1) {
       res.statusMessage = "There was an error deleting tag";
@@ -614,7 +631,7 @@ router.post("/delete", isAuth, async (req, res) => {
       and created_by_id = $2
     `;
 
-    const result2 = await query(UPDATE_TAGGED_ITEMS, [req.body.id, req.user.id]);
+    const result2 = await pool.query(UPDATE_TAGGED_ITEMS, [req.body.id, req.user.id]);
 
     res.send({ result: result2, message: "Tag successfully deleted" });
   } catch (err) {
@@ -642,7 +659,7 @@ async function getTags(reqUserId) {
     and a.created_by_id = $2
   `;
 
-  return query(sql, [reqUserId, reqUserId]);
+  return pool.query(sql, [reqUserId, reqUserId]);
 }
 
 async function getSingleTag(reqUserId, tagId) {
@@ -666,7 +683,7 @@ async function getSingleTag(reqUserId, tagId) {
     LIMIT 1
   `;
 
-  return query(sql, [reqUserId, reqUserId, tagId]);
+  return pool.query(sql, [reqUserId, reqUserId, tagId]);
 }
 
 async function addTaggedItem(tagId, itemId, itemIsPage, userId) {
@@ -692,7 +709,7 @@ async function addTaggedItem(tagId, itemId, itemIsPage, userId) {
   )
 `;
 
-  return query(ADD_TAGGED_ITEM, [tagId, itemId, itemIsPage, userId]);
+  return pool.query(ADD_TAGGED_ITEM, [tagId, itemId, itemIsPage, userId]);
 }
 
-module.exports = router;
+export default router;

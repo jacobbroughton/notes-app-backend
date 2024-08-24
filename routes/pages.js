@@ -1,8 +1,15 @@
-const router = require("express").Router();
-const pool = require("../config/database").pool;
-const isAuth = require("../authMiddleware").isAuth;
-const util = require("util");
-const query = util.promisify(pool.query).bind(pool);
+// const router = require("express").Router();
+// const pool = require("../config/database").pool;
+// const isAuth = require("../authMiddleware").isAuth;
+// const util = require("util");
+// const query = util.promisify(pool.query).bind(pool);
+
+import express from "express";
+import { pool } from "../config/database.js";
+import { isAuth } from "../authMiddleware.js";
+import util from "util";
+
+const router = express.Router()
 
 router.get("/", isAuth, async (req, res) => {
   try {
@@ -24,9 +31,9 @@ router.get("/", isAuth, async (req, res) => {
       GROUP BY a.page_id
       `;
 
-    const result = await query(GET_PAGES, [req.user.id, req.user.id]);
+    const result = await pool.query(GET_PAGES, [req.user.id, req.user.id]);
 
-    const pages = result.rows
+    const pages = result.rows;
 
     pages.forEach(
       (page) =>
@@ -67,7 +74,7 @@ router.post("/new", isAuth, async (req, res) => {
     )
     `;
 
-    const result = await query(sql, [
+    const result = await pool.query(sql, [
       req.body.parentFolderId,
       req.body.newPageName,
       req.body.newPageName,
@@ -102,7 +109,7 @@ router.post("/edit", isAuth, async (req, res) => {
       where page_id = $3
     `;
 
-    const result = await query(UPDATE_PAGE, [
+    const result = await pool.query(UPDATE_PAGE, [
       req.body.name.replace(/'/g, "''"),
       req.body.body?.replace(/'/g, "''"),
       req.body.pageId,
@@ -121,7 +128,7 @@ router.post("/edit", isAuth, async (req, res) => {
         and eff_status = 1
       `;
 
-    const result2 = await query(SELECT_UPDATED_PAGE, [req.body.pageId]);
+    const result2 = await pool.query(SELECT_UPDATED_PAGE, [req.body.pageId]);
     res.send({ modifiedPage: result2.rows[0], message: "Successfully edited page" });
   } catch (err) {
     console.log(err);
@@ -146,7 +153,7 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
       where page_id = ${req.body.affectedPage?.page_id}
     `;
 
-    const result = await query(sql);
+    const result = await pool.query(sql);
 
     res.send({ result, message: "Successfully updated parent folder id" });
   } catch (err) {
@@ -164,7 +171,7 @@ router.post("/delete", isAuth, async (req, res) => {
     where page_id = $1
   `;
 
-    const result = await query(sql, [req.body.pageId]);
+    const result = await pool.query(sql, [req.body.pageId]);
 
     res.send({ result, message: "Successfully deleted page" });
   } catch (err) {
@@ -204,7 +211,7 @@ router.post("/rename", isAuth, async (req, res) => {
       where page_id = $2
       `;
 
-    const result = await query(sql, [req.body.newName, req.body.pageId]);
+    const result = await pool.query(sql, [req.body.newName, req.body.pageId]);
     res.send({ result, message: "Successfully renamed page" });
   } catch (err) {
     console.log(err);
@@ -224,11 +231,11 @@ router.post("/favorite", isAuth, async (req, res) => {
       where page_id = $2
     `;
 
-    const result = await query(sql, [req.body.favoriteStatus, req.body.pageId]);
+    const result = await pool.query(sql, [req.body.favoriteStatus, req.body.pageId]);
     res.send({ result, message: "Successfully favorited page" });
   } catch (err) {
     console.log(err);
   }
 });
 
-module.exports = router;
+export default router

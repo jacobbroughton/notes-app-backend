@@ -1,9 +1,21 @@
-const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-require("dotenv").config();
+// const express = require("express");
+// const cors = require("cors");
+// const cookieParser = require("cookie-parser");
+// const session = require("express-session");
+// require("dotenv").config();
 
+import indexRoutes from "./routes/index.js"
+import foldersRoutes from "./routes/folders.js"
+import pagesRoutes from "./routes/pages.js"
+import tagsRoutes from "./routes/tags.js"
+
+import express from "express"
+import cors from "cors"
+import cookieParser from "cookie-parser";
+import session from "express-session"
+import dotEnv from "dotenv"
+
+dotEnv.config()
 const app = express();
 
 const origins = [
@@ -20,8 +32,10 @@ app.use(
   })
 );
 
-const passport = require("passport");
-const { sessionStore } = require("./config/database.js");
+// const passport = require("passport");
+// const { sessionStore } = require("./config/database.js");
+import passport from "passport"
+import {sessionStore} from "./config/database.js"
 app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.json()); // parsing the incoming data
 app.use(express.static("build"));
@@ -51,14 +65,15 @@ app.use(
   })
 );
 
-require("./config/passport"); // pretty much includes the passport.use()
+// require("./config/passport"); // pretty much includes the passport.use()
+import "./config/passport.js"
 app.use(passport.initialize()); // initialize the middleware, makes sure it doesnt get stale
 app.use(passport.session()); // allows passport to plug into sessions table
 
-app.use("/", require("./routes"));
-app.use("/folders", require("./routes/folders"));
-app.use("/pages", require("./routes/pages"));
-app.use("/tags", require("./routes/tags"));
+app.use("/", indexRoutes);
+app.use("/folders", foldersRoutes);
+app.use("/pages", pagesRoutes);
+app.use("/tags", tagsRoutes);
 
 const port = process.env.PORT || 3001;
 

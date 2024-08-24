@@ -1,12 +1,20 @@
-const router = require("express").Router();
-const passport = require("passport");
-const genPassword = require("../lib/passwordUtils").genPassword;
-const pool = require("../config/database").pool;
-const isAuth = require("../authMiddleware").isAuth;
-const isAdmin = require("../authMiddleware").isAdmin;
-const util = require("util");
-const query = util.promisify(pool.query).bind(pool);
-const { body } = require("express-validator");
+import express from "express"
+import passport from "passport"
+import { genPassword } from "../lib/passwordUtils.js";
+import {pool} from "../config/database.js"
+import { isAuth, isAdmin } from "../authMiddleware.js";
+import util from "util"
+
+const router = express.Router()
+
+// const router = require("express").Router();
+// const passport = require("passport");
+// const genPassword = require("../lib/passwordUtils").genPassword;
+// const pool = require("../config/database").pool;
+// const isAuth = require("../authMiddleware").isAuth;
+// const isAdmin = require("../authMiddleware").isAdmin;
+// const util = require("util");
+// const query = util.promisify(pool.query).bind(pool);
 
 router.get("/", isAuth, async (req, res) => {
   try {
@@ -28,7 +36,7 @@ router.get("/", isAuth, async (req, res) => {
     GROUP BY a.id
     `;
 
-    let result = await query(SELECT_FOLDERS, [req.user.id]);
+    let result = await pool.query(SELECT_FOLDERS, [req.user.id]);
 
     let folders = [];
     let tier = 1;
@@ -107,7 +115,7 @@ router.post("/new", isAuth, async (req, res, next) => {
     )
   `;
 
-    const result = await query(sql, [
+    const result = await pool.query(sql, [
       req.body.parentFolderId,
       req.body.newFolderName,
       req.user.id,
@@ -128,7 +136,7 @@ router.post("/new", isAuth, async (req, res, next) => {
 router.post("/delete", isAuth, async (req, res, next) => {
   try {
     async function getChildren(folderId) {
-      return await query(
+      return await pool.query(
         `
       select id from folders
       where parent_folder_id = $1
@@ -139,7 +147,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
     }
 
     async function getPagesInFolder(folderId) {
-      return await query(
+      return await pool.query(
         `
       select page_id from pages
       where folder_id = $1
@@ -150,7 +158,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
     }
 
     async function deleteFolders(folderIds) {
-      return await query(
+      return await pool.query(
         `
       update folders
       set 
@@ -163,7 +171,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
     }
 
     async function deletePages(pageIds) {
-      return await query(
+      return await pool.query(
         `
       update pages
       set 
@@ -206,7 +214,7 @@ router.post("/delete", isAuth, async (req, res, next) => {
       message: "Folders and pages successfully deleted",
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 });
 
@@ -222,7 +230,7 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
       where id IN ($1)
     `;
 
-    const result = await query(sql, [[...folderIdsForDelete]]);
+    const result = await pool.query(sql, [[...folderIdsForDelete]]);
 
     if (!result) {
       res.statusText = "There was an error deleting multiple folders";
@@ -247,7 +255,7 @@ router.post("/rename", isAuth, async (req, res) => {
     set name = $1
     where id = $2
     `;
-    const result = await query(sql, [req.body.newName, req.body.folderId]);
+    const result = await pool.query(sql, [req.body.newName, req.body.folderId]);
 
     if (!result) {
       res.statusText = "There was an error renaming this folder";
@@ -261,4 +269,4 @@ router.post("/rename", isAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router
