@@ -14,14 +14,10 @@ const strategy = new LocalStrategy(
 
       const result = await pool.query(sql, [username]);
 
-      if (err) {
-        console.log(err);
-        throw err;
-      }
-
       const user = result.rows[0];
 
       if (!user) {
+        console.log("No user found")
         return done(null, false);
       }
 
@@ -37,7 +33,7 @@ const strategy = new LocalStrategy(
       // });
 
       if (isValid) {
-        console.log("Yep");
+        console.log("valid password");
         return done(null, user);
       }
 
@@ -45,6 +41,7 @@ const strategy = new LocalStrategy(
         message: "Username or password is incorrect",
       });
     } catch (err) {
+      console.error(err)
       done(err);
     }
   }
@@ -74,9 +71,7 @@ passport.deserializeUser(async (userId, done) => {
 
     done(null, user); // attaches user to req.user
   } catch (error) {
-    if (err) {
-      console.log("SQL ERROR - ", err);
-      done(err, false, { error: err });
-    }
+    console.log("SQL ERROR - ", error);
+    done(error, false, { error });
   }
 });
