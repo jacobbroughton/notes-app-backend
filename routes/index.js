@@ -5,59 +5,49 @@
 // const isAuth = require("../authMiddleware").isAuth;
 // const isAdmin = require("../authMiddleware").isAdmin;
 
-import express from "express"
-import passport from "passport"
+import express from "express";
+import passport from "passport";
 import { genPassword } from "../lib/passwordUtils.js";
-import {pool} from "../config/database.js"
+import { pool } from "../config/database.js";
 import { isAuth, isAdmin } from "../authMiddleware.js";
-import util from "util"
+import util from "util";
 
-const router = express.Router()
+const router = express.Router();
 
 router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
 
-router.post(
-  "/login",
-  passport.authenticate('local'),
-  function(req, res) {
-    res.json({ user: req.user, message: 'Logged in successfully' });
-  }
-);
+router.post("/login", passport.authenticate("local"), function (req, res) {
+  res.json({ user: req.user, message: "Logged in successfully" });
+});
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    let sql = `
+    let sql1 = `
           select * from users
           where username = $1
         `;
 
-    pool.query(sql, [req.body.username], (error, result, fields) => {
-      if (error) {
-        console.log(error);
-        res.statusMessage = error.message;
-        res.status(409).end();
-        return;
-      }
+    const result = await pool.query(sql1, [req.body.username]);
 
-      if (result.length) {
-        res.send({
-          code: 2,
-          message: "User already exists",
-          user: null,
-        });
-        res.statusMessage = "User already exists";
-        res.status(409).end();
-        return;
-      }
+    if (result.length) {
+      res.send({
+        code: 2,
+        message: "User already exists",
+        user: null,
+      });
+      res.statusMessage = "User already exists";
+      res.status(409).end();
+      return;
+    }
 
-      const saltHash = genPassword(req.body.password);
+    const saltHash = genPassword(req.body.password);
 
-      const salt = saltHash.salt;
-      const hash = saltHash.hash;
+    const salt = saltHash.salt;
+    const hash = saltHash.hash;
 
-      let sql = `
+    let sql2 = `
             insert into users (
                 username,
                 hash,
@@ -73,18 +63,14 @@ router.post("/register", (req, res) => {
             )
         `;
 
-      // Save the user to the database
-      pool.query(sql, [req.body.username, hash, salt], (error, result, fields) => {
-        if (error) {
-          res.statusMessage = error.message || error.sqlMessage;
-          res.status(409).end();
-          return;
-        }
-        res.send({ result, message: "Successfully registered" });
-      });
-    });
+    // Save the user to the database
+    const result2 = await pool.query(sql2, [req.body.username, hash, salt]);
+
+    res.send({ result: result2, message: "Successfully registered" });
   } catch (error) {
     console.log(error);
+    res.statusMessage = error.message || error.sqlMessage || "There was an error";
+    res.status(409).end();
   }
 });
 
@@ -110,4 +96,4 @@ router.get("/logout", (req, res, next) => {
   });
 });
 
-export default router
+export default router;

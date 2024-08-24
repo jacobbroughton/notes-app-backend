@@ -1,15 +1,8 @@
-// const router = require("express").Router();
-// const pool = require("../config/database").pool;
-// const isAuth = require("../authMiddleware").isAuth;
-// const util = require("util");
-// const query = util.promisify(pool.query).bind(pool);
-
 import express from "express";
 import { pool } from "../config/database.js";
 import { isAuth } from "../authMiddleware.js";
-import util from "util";
 
-const router = express.Router()
+const router = express.Router();
 
 router.get("/", isAuth, async (req, res) => {
   try {
@@ -238,4 +231,4 @@ router.post("/favorite", isAuth, async (req, res) => {
   }
 });
 
-export default router
+export default router;
