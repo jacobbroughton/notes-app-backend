@@ -25,7 +25,7 @@ const strategy = new LocalStrategy(
           throw err;
         }
 
-        const user = result.rows[0]
+        const user = result.rows[0];
 
         if (!user) {
           return done(null, false);

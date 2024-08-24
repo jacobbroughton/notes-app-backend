@@ -28,7 +28,7 @@ try {
 const sessionStore = new pgSession({
   pool : pool, 
   tableName : 'sessions' ,
-  createTableIfMissing: true
+  createTableIfMissing: true,
   // Insert connect-pg-simple options here
 })
 

@@ -6,24 +6,19 @@ require("dotenv").config();
 
 const app = express();
 
+const origins = [
+  "http://localhost:3000",
+  "https://notesjb.com",
+  "https://www.notesjb.com",
+];
+
+app.options("*", cors({ credentials: true, origin: origins }));
 app.use(
   cors({
     credentials: true,
-    origin: [
-      "http://localhost:3000",
-      "https://notesjb.com",
-      "https://www.notesjb.com",
-    ],
+    origin: origins,
   })
 );
-
-// const rootPath = __dirname.replace('/server', '/dist')
-// console.log(rootPath)
-
-// app.use(express.static(rootPath))
-// app.get('/*', function (req, res) {
-//   res.sendFile(path.join(rootPath, 'index.html'))
-// })
 
 const passport = require("passport");
 const { sessionStore } = require("./config/database.js");
