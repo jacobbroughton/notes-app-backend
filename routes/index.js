@@ -22,10 +22,6 @@ router.post(
   "/login",
   passport.authenticate("local", { failureMessage: true }),
   function (req, res) {
-    console.log("Made it to login");
-    console.log(req);
-    console.log("=======");
-    console.log(res);
     res.json({ user: req.user, message: "Logged in successfully" });
   }
 );
