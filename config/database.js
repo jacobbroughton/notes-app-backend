@@ -32,13 +32,20 @@ const dbOptions = {
       ? process.env.DB_NAME_DEV
       : process.env.DB_NAME_PROD,
   ssl: { rejectUnauthorized: false },
-  idleTimeoutMillis: 0
+  min: 0,
+  max: 10,
+  createTimeoutMillis: 8000,
+  acquireTimeoutMillis: 8000,
+  idleTimeoutMillis: 8000,
+  reapIntervalMillis: 1000,
+  createRetryIntervalMillis: 100,
 };
 
 const pool = new Pool(dbOptions);
 
 const sessionStore = new pgSession({
   pool: pool,
+  acquireConnectionTimeout: 5000,
   tableName: "session",
   createTableIfMissing: true,
 });
