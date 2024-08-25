@@ -20,17 +20,7 @@ router.get("/", isAuth, (req, res) => {
 
 router.post(
   "/login",
-  passport.authenticate("local", function (err, user, info, status) {
-    console.log('inside passport authenticate', {info, status})
-    if (err) {
-      console.error(err)
-      return next(err);
-    }
-    if (!user) {
-      console.log("No user")
-    }
-   console.log("Made it to end, continuing")
-  })(req, res, next),
+  passport.authenticate("local", { failureMessage: true }),
   function (req, res) {
     console.log("Made it to login");
     console.log(req);
