@@ -42,7 +42,7 @@ const dbOptions = {
   // createRetryIntervalMillis: 100,
 };
 
-const pool = new Pool({dbOptions});
+const pool = new Pool(dbOptions);
 
 pool.on('error', (err) => {
   console.log("Encountered error", err)
