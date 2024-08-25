@@ -12,7 +12,10 @@ const strategy = new LocalStrategy(
         where username = $1
       `;
 
-      const result = await pool.query(sql, [username]);
+      const result =  pool.query(sql, [username], (err, result) => {
+        if (err) throw err
+        console.log("Made it!", result)
+      });
 
       const user = result.rows[0];
 
