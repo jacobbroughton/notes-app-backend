@@ -37,18 +37,10 @@ const dbOptions = {
 
 const pool = new Pool(dbOptions);
 
-// try {
-//   await pool.connect();
-//   console.log("Connected to database");
-// } catch (error) {
-//   console.error("Error connecting to the database: ", error.message);
-// }
-
 const sessionStore = new pgSession({
   pool: pool,
-  tableName: "sessions",
+  tableName: "session",
   createTableIfMissing: true,
-  // Insert connect-pg-simple options here
 });
 
 export { pool, sessionStore };
