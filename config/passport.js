@@ -8,9 +8,9 @@ const strategy = new LocalStrategy(
   async (username, password, done) => {
     try {
       let sql = `
-         select * from users
-          where username = $1
-        `;
+        select * from users
+        where username = $1
+      `;
 
       const result = await pool.query(sql, [username]);
 
@@ -21,7 +21,6 @@ const strategy = new LocalStrategy(
         return done(null, false);
       }
 
-      console.log("Wassup");
       const isValid = validatePassword(password, user.hash, user.salt);
 
       // bcrypt.compare(password, user.password, (err, res) => {

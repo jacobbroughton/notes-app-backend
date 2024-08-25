@@ -1,9 +1,4 @@
-// const router = require("express").Router();
-// const pool = require("../config/database.js").pool;
-// const isAuth = require("../authMiddleware.js").isAuth;
-// const util = require("util");
-// const query = util.promisify(pool.query).bind(pool);
-// const { body } = require("express-validator");
+
 
 import express from "express";
 import { pool } from "../config/database.js";

@@ -1,20 +1,11 @@
-import express from "express"
-import passport from "passport"
+import express from "express";
+import passport from "passport";
 import { genPassword } from "../lib/passwordUtils.js";
-import {pool} from "../config/database.js"
+import { pool } from "../config/database.js";
 import { isAuth, isAdmin } from "../authMiddleware.js";
-import util from "util"
+import util from "util";
 
-const router = express.Router()
-
-// const router = require("express").Router();
-// const passport = require("passport");
-// const genPassword = require("../lib/passwordUtils").genPassword;
-// const pool = require("../config/database").pool;
-// const isAuth = require("../authMiddleware").isAuth;
-// const isAdmin = require("../authMiddleware").isAdmin;
-// const util = require("util");
-// const query = util.promisify(pool.query).bind(pool);
+const router = express.Router();
 
 router.get("/", isAuth, async (req, res) => {
   try {
@@ -269,4 +260,4 @@ router.post("/rename", isAuth, async (req, res) => {
   }
 });
 
-export default router
+export default router;
