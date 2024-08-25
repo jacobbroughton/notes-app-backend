@@ -31,7 +31,7 @@ const dbOptions = {
     process.env.NODE_ENV === "development"
       ? process.env.DB_NAME_DEV
       : process.env.DB_NAME_PROD,
-  // ssl: { rejectUnauthorized: process.env.NODE_ENV === 'development' ? false : true }
+  ssl: { rejectUnauthorized: process.env.NODE_ENV === 'development' ? false : true }
 };
 
 const pool = new Pool(dbOptions);
