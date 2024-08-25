@@ -31,21 +31,25 @@ const dbOptions = {
     process.env.NODE_ENV === "development"
       ? process.env.DB_NAME_DEV
       : process.env.DB_NAME_PROD,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.NODE_ENV === "development" ? false :{ rejectUnauthorized: false },
   min: 0,
-  max: 10,
-  createTimeoutMillis: 8000,
-  acquireTimeoutMillis: 8000,
-  idleTimeoutMillis: 8000,
-  reapIntervalMillis: 1000,
-  createRetryIntervalMillis: 100,
+  idleTimeoutMillis: 0,
+  // max: 10,
+  // createTimeoutMillis: 8000,
+  // acquireTimeoutMillis: 8000,
+  // reapIntervalMillis: 1000,
+  // createRetryIntervalMillis: 100,
 };
 
 const pool = new Pool(dbOptions);
 
+pool.on('error', (err) => {
+  console.log("Encountered error", err)
+})
+
 const sessionStore = new pgSession({
   pool: pool,
-  acquireConnectionTimeout: 5000,
+  // acquireConnectionTimeout: 5000,
   tableName: "session",
   createTableIfMissing: true,
 });
