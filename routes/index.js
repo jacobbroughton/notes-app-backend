@@ -18,9 +18,27 @@ router.get("/", isAuth, (req, res) => {
   res.send({ message: "You're logged in", user: req.user });
 });
 
-router.post("/login", passport.authenticate("local"), function (req, res) {
-  res.json({ user: req.user, message: "Logged in successfully" });
-});
+router.post(
+  "/login",
+  passport.authenticate("local", function (err, user, info, status) {
+    console.log('inside passport authenticate', {info, status})
+    if (err) {
+      console.error(err)
+      return next(err);
+    }
+    if (!user) {
+      console.log("No user")
+    }
+   console.log("Made it to end, continuing")
+  })(req, res, next),
+  function (req, res) {
+    console.log("Made it to login");
+    console.log(req);
+    console.log("=======");
+    console.log(res);
+    res.json({ user: req.user, message: "Logged in successfully" });
+  }
+);
 
 router.post("/register", async (req, res) => {
   try {
