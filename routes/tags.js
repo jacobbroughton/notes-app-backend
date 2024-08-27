@@ -1,5 +1,3 @@
-
-
 import express from "express";
 import { pool } from "../config/database.js";
 import { isAuth } from "../authMiddleware.js";
@@ -10,9 +8,11 @@ const router = express.Router();
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    let tags = await getTags(req.user.id);
+    let result = await getTags(req.user.id);
 
-    res.send({ tags, message: "Successfully fetched tags" });
+    if (!result.rows) throw "No tags found";
+
+    res.send(result.rows);
   } catch (err) {
     console.log(err);
   }
@@ -21,121 +21,22 @@ router.get("/", isAuth, async (req, res) => {
 router.get("/color-options", isAuth, async (req, res) => {
   try {
     const GET_DEFAULT_COLORS = `
-    select *, 
-    1 is_default_color
+    select *
     from default_color_options
     where eff_status = 1
   `;
 
-    const defaultOptions = await pool.query(GET_DEFAULT_COLORS);
+    const result = await pool.query(GET_DEFAULT_COLORS);
 
-    if (!defaultOptions) {
+    if (!result) {
       res.statusText = "Failed to fetch default color options";
       res.status(409).end();
       return;
     }
 
-    const GET_USER_CREATED_COLORS = `
-    select *,
-    0 is_default_color from user_created_color_options 
-    where created_by_id = $1
-    and eff_status = 1
-  `;
-
-    const userCreatedOptions = await pool.query(GET_USER_CREATED_COLORS, [req.user.id]);
-
-    if (!userCreatedOptions) {
-      res.statusText = "Failed to fetch user created color options";
-      res.status(409).end();
-      return;
-    }
-
     res.send({
-      result: {},
-      defaultOptions,
-      userCreatedOptions,
+      result: result.rows,
       message: "Successfully got color options",
-    });
-  } catch (err) {
-    console.log(err);
-  }
-});
-
-router.post("/color-options/new", isAuth, async (req, res) => {
-  try {
-    // Check if color exists already
-    const CHECK_IF_EXISTS = `
-      select * from user_created_color_options 
-      where color_code = $1 and created_by_id = $2
-    `;
-
-    // If exists, throw error
-    const existingColor = await pool.query(CHECK_IF_EXISTS, [
-      req.body.colorCode,
-      req.user.id,
-    ]);
-
-    if (existingColor.length > 0) {
-      if (!defaultOptions) {
-        res.statusText = "This color already exists in your custom colors list";
-        res.status(409).end();
-        return;
-      }
-    }
-
-    // Otherwise, add to user_created_color_options
-    const ADD_TO_CUSTOM_COLORS = `
-      insert into user_created_color_options
-      (
-        color_code,
-        eff_status,
-        created_dttm,
-        modified_dttm, 
-        created_by_id,
-        modified_by_id
-      ) values (
-        $1,
-        1,
-        now(),
-        null,
-        $2,
-        null
-      )
-    `;
-
-    const result = await pool.query(ADD_TO_CUSTOM_COLORS, [
-      req.body.colorCode,
-      req.user.id,
-    ]);
-
-    if (!result) {
-      res.statusText = "There was an error adding to your custom colors";
-      res.status(409).end();
-      return;
-    }
-
-    const GET_CREATED_COLOR = `
-    select *,
-    0 is_default_color
-    from user_created_color_options
-    where id = $1 and created_by_id = $2
-  `;
-
-    const [justCreatedColor] = await pool.query(GET_CREATED_COLOR, [
-      result.insertId,
-      req.user.id,
-    ]);
-
-    if (!justCreatedColor) {
-      res.statusText = "Unable to fetch recently created color";
-      res.status(409).end();
-      return;
-    }
-
-    res.send({
-      result,
-      justCreatedColor,
-      message: "Successfully added custom color option",
     });
   } catch (err) {
     console.log(err);
@@ -153,8 +54,6 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
   `;
 
     const result1 = await pool.query(DISABLE_COLOR, [req.body.colorId, req.user.id]);
-
-    console.log(result1);
 
     if (!result1) {
       res.statusText = "Failed to delete custom color";
@@ -457,50 +356,36 @@ router.post("/new", isAuth, async (req, res) => {
       and created_by_id = $2
     `;
 
-    let [existingTag] = await pool.query(SEARCH_FOR_EXISTING_TAG, [
-      req.body.name,
-      req.user.id,
-    ]);
+    console.log(req.body);
 
-    if (existingTag) {
+    let result = await pool.query(SEARCH_FOR_EXISTING_TAG, [req.body.name, req.user.id]);
+
+    if (result.rows?.length >= 1) {
       res.statusMessage = "This tag already exists";
       res.status(409).end();
       return;
     }
 
-    let GET_TAG_COLOR = ``;
-    let sqlParams = [];
+    // const GET_TAG_COLOR = `
+    //     select * from default_color_options
+    //     where id = $1
+    //     limit 1;
+    //   `;
 
-    if (req.body.color.is_default_color) {
-      sqlParams.push(req.body.color.id);
-      GET_TAG_COLOR = `
-        select * from default_color_options
-        where id = $1
-        LIMIT 1;
-      `;
-    } else {
-      sqlParams.push(req.body.color.id, req.user.id);
-      GET_TAG_COLOR = `
-        select * from user_created_color_options 
-        where id = $1
-        and created_by_id = $2
-        LIMIT 1;
-      `;
-    }
+    // const result2 = await pool.query(GET_TAG_COLOR, [req.body.color.id]);
 
-    const [tagColor] = await pool.query(GET_TAG_COLOR, sqlParams);
+    // if (!result2) {
+    //   res.statusText = "Tag color not found";
+    //   res.status(409).end();
+    //   return;
+    // }
 
-    if (!tagColor) {
-      res.statusText = "Tag color not found";
-      res.status(409).end();
-      return;
-    }
+    // console.log(result2)
 
     const CREATE_TAG = `
       insert into tags (
         name,
         color_id,
-        HAS_DEFAULT_COLOR,
         eff_status,
         created_dttm,
         modified_dttm,
@@ -509,37 +394,39 @@ router.post("/new", isAuth, async (req, res) => {
       ) values (
         $1,
         $2,
-        $3,
         1,
         now(),
         null,
-        $4,
+        $3,
         null
-      )
+      ) returning id
     `;
 
-    let result = await pool.query(CREATE_TAG, [
+    let result2 = await pool.query(CREATE_TAG, [
       req.body.name,
-      tagColor.id,
-      req.body.color.is_default_color,
+      req.body.color.id,
       req.user.id,
     ]);
 
-    if (!result) {
+    if (!result2) {
       res.statusMessage = "There was an error creating the tag";
       res.status(409).end();
       return;
     }
 
-    const [justCreatedTag] = await getSingleTag(req.user.id, result.insertId);
+    console.log(result2);
 
-    if (!justCreatedTag) {
-      res.statusMessage = "There was a problem getting revcently created tag";
+    const result3 = await getSingleTag(req.user.id, result2.rows[0].id);
+
+    if (!result3) {
+      res.statusMessage = "There was a problem getting recently created tag";
       res.status(409).end();
       return;
     }
 
     const itemFromRequest = req.body.item;
+
+    const justCreatedTag = result3.rows[0];
 
     if (req.body.isForItem) {
       await addTaggedItem(
@@ -566,16 +453,14 @@ router.post("/edit", isAuth, async (req, res) => {
       update tags 
       set
         name = $1,
-        color_id = $2,
-        HAS_DEFAULT_COLOR = $3
-      where id = $4
+        color_id = $2
+      where id = $3
     `;
 
     const result = await pool.query(UPDATE_TAG, [
       req.body.name,
-      req.body.color.id,
-      req.body.color.is_default_color,
-      req.body.id,
+      req.body.color_id,
+      req.body.tag_id,
     ]);
 
     if (!result) {
@@ -584,15 +469,19 @@ router.post("/edit", isAuth, async (req, res) => {
       return;
     }
 
-    const [justUpdatedTag] = await getSingleTag(req.user.id, req.body.id);
+  
 
-    if (!justUpdatedTag) {
+    const result2 = await getSingleTag(req.user.id, req.body.tag_id);
+
+    console.log(result2.rows)
+
+    if (!result2) {
       res.statusMessage = "There was an issue getting the tag that was just updated";
       res.status(409).end();
       return;
     }
 
-    res.send({ result, justUpdatedTag, message: "Tag successfully edited" });
+    res.send({ result, justModifiedTag: result2.rows[0], message: "Tag successfully edited" });
   } catch (err) {
     console.log(err);
   }
@@ -639,46 +528,34 @@ async function getTags(reqUserId) {
     select a.*, 
     case
       when b.color_code IS NOT NULL then b.color_code
-      when c.color_code IS NOT NULL then c.color_code
       else '#000000'
     end AS color_code
     from tags a
-    LEFT JOIN default_color_options b
-    ON a.color_id = b.id
+    left join default_color_options b
+    on a.color_id = b.id
     and b.eff_status = 1
-    LEFT JOIN user_created_color_options c
-    ON a.color_id = c.id
-    and c.created_by_id = $1
-    and c.eff_status = 1
     where a.eff_status = 1 
-    and a.created_by_id = $2
+    and a.created_by_id = $1
   `;
 
-  return pool.query(sql, [reqUserId, reqUserId]);
+  return pool.query(sql, [reqUserId]);
 }
 
 async function getSingleTag(reqUserId, tagId) {
   const sql = `
     select a.*,
-    case 
-      when a.HAS_DEFAULT_COLOR = 1 then b.color_code
-      else c.color_code
-    end color_code
+    b.color_code
     from tags a
-    LEFT JOIN default_color_options b
-    ON a.color_id = b.id
+    left join default_color_options b
+    on a.color_id = b.id
     and b.eff_status = 1
-    LEFT JOIN user_created_color_options c
-    ON a.color_id = c.id
-    and c.eff_status = 1
-    and c.created_by_id = $1
     where a.eff_status = 1 
-    and a.created_by_id = $2
-    and a.id = $3
-    LIMIT 1
+    and a.created_by_id = $1
+    and a.id = $2
+    limit 1
   `;
 
-  return pool.query(sql, [reqUserId, reqUserId, tagId]);
+  return pool.query(sql, [reqUserId, tagId]);
 }
 
 async function addTaggedItem(tagId, itemId, itemIsPage, userId) {

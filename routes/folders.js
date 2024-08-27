@@ -14,13 +14,13 @@ router.get("/", isAuth, async (req, res) => {
     a.*, 
     string_agg(b.tag_id::text, ',' order by b.tag_id ASC) AS tags
     from folders a
-    LEFT JOIN tagged_items b
-      ON a.id = b.item_id
+    left join tagged_items b
+      on a.id = b.item_id
       and b.is_page = 0
       and b.eff_status = 1
       and b.created_by_id = $1
-    LEFT JOIN tags c
-      ON b.tag_id = c.id 
+    left join tags c
+      on b.tag_id = c.id 
       and c.eff_status = 1
     where a.eff_status = 1
     and a.created_by_id = $1

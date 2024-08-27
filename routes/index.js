@@ -30,7 +30,7 @@ router.post("/register", async (req, res) => {
   try {
     let sql1 = `
           select * from users
-          where username = $1
+          where username = $1;
         `;
 
     const result = await pool.query(sql1, [req.body.username]);
@@ -65,10 +65,35 @@ router.post("/register", async (req, res) => {
                 now(), 
                 null
             )
+            returning id;
         `;
 
     // Save the user to the database
     const result2 = await pool.query(sql2, [req.body.username, hash, salt]);
+
+    console.log(result2)
+
+    const sql3 = `
+      insert into tags (name, color_id, eff_status, created_dttm, modified_dttm, created_by_id, modified_by_id)
+          values 
+          ('Work', 1, 1, NOW(), NULL, $1, NULL),
+          ('Personal', 2, 1, NOW(), NULL, $1, NULL),
+          ('Shopping', 3, 1, NOW(), NULL, $1, NULL),
+          ('Important', 4, 1, NOW(), NULL, $1, NULL),
+          ('Urgent', 5, 1, NOW(), NULL, $1, NULL),
+          ('Ideas', 6, 1, NOW(), NULL, $1, NULL),
+          ('Reminders', 7, 1, NOW(), NULL, $1, NULL),
+          ('Goals', 8, 1, NOW(), NULL, $1, NULL),
+          ('Projects', 9, 1, NOW(), NULL, $1, NULL),
+          ('Meetings', 10, 1, NOW(), NULL, $1, NULL),
+          ('Travel', 11, 1, NOW(), NULL, $1, NULL),
+          ('Health', 12, 1, NOW(), NULL, $1, NULL),
+          ('Finance', 13, 1, NOW(), NULL, $1, NULL),
+          ('Learning', 14, 1, NOW(), NULL, $1, NULL),
+          ('Miscellaneous', 15, 1, NOW(), NULL, $1, NULL);
+    `
+
+    const result3 = await pool.query(sql3, [result2.rows[0].id]);
 
     res.send({ result: result2, message: "Successfully registered" });
   } catch (error) {
