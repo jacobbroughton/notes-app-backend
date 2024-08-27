@@ -197,7 +197,9 @@ router.post("/delete", isAuth, async (req, res, next) => {
 
     if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
 
-    await deleteFolders(foldersToDelete);
+    const result = await deleteFolders(foldersToDelete);
+
+    console.log(result);
 
     res.send({
       deletedFolders: foldersToDelete,
@@ -213,15 +215,17 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
   try {
     const folderIdsForDelete = req.body.folders.map((folder) => folder.id);
 
+    console.log(folderIdsForDelete);
+
     const sql = `
       update folders
-      set 
-        eff_status = 0,
-        modified_dttm = now()
-      where id IN ($1)
+    set 
+      eff_status = 0,
+      modified_dttm = now()
+    where id = any($1::int[])
     `;
 
-    const result = await pool.query(sql, [[...folderIdsForDelete]]);
+    const result = await pool.query(sql, [[folderIdsForDelete]]);
 
     if (!result) {
       res.statusText = "There was an error deleting multiple folders";

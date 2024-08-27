@@ -181,10 +181,10 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
       set 
         eff_status = 0,
         modified_dttm = now()
-      where page_id IN ($1)
+      where page_id = ANY ($1::int[])
     `;
 
-    const result = query(sql, [[...pageIdsForDelete]]);
+    const result = await pool.query(sql, [[...pageIdsForDelete]]);
 
     res.send({
       result,
