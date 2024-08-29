@@ -64,7 +64,6 @@ passport.serializeUser((user, done) => {
 
 // Grabs user from session
 passport.deserializeUser(async (userId, done) => {
-  console.log(userId)
   try {
     let sql = `
     select * from users

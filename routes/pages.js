@@ -8,8 +8,10 @@ router.get("/", isAuth, async (req, res) => {
   try {
     const GET_PAGES = `
       select 
-        a.*, 
-        string_agg(b.tag_id::text, ',' order by b.tag_id ASC) as tags
+        a.*,
+        c.id tag_id,
+        c.name tag_name,
+        d.color_code tag_color_code
       from pages a
       left join tagged_items b
         on a.page_id = b.item_id
@@ -17,25 +19,20 @@ router.get("/", isAuth, async (req, res) => {
         and b.eff_status = 1
         and b.created_by_id = $1
       left join tags c
-        on b.tag_id = c.id 
-        and c.eff_status = 1
+      on b.tag_id = c.id
+      left join default_color_options d
+      on c.color_id = d.id
       where a.eff_status = 1
       and a.created_by_id = $2
-      GROUP BY a.page_id
+      group by a.page_id,
+      c.id,
+      c.name,
+      d.color_code
       `;
 
     const result = await pool.query(GET_PAGES, [req.user.id, req.user.id]);
 
-    const pages = result.rows;
-
-    pages.forEach(
-      (page) =>
-        (page.TAGS = page.TAGS
-          ? page.TAGS.split(",").map((tagId) => parseInt(tagId))
-          : [])
-    );
-
-    res.send({ pages, message: "Successfully got pages" });
+    res.send(result.rows);
   } catch (err) {
     console.log(err);
   }
@@ -132,7 +129,7 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
   try {
     let newFolderId;
 
-    if (req.body.droppedOntoItem.TIER === 0) {
+    if (req.body.droppedOntoItem.tier === 0) {
       newFolderId = null;
     } else {
       newFolderId = req.body.droppedOntoItem?.id
@@ -181,7 +178,7 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
       set 
         eff_status = 0,
         modified_dttm = now()
-      where page_id = ANY ($1::int[])
+      where page_id = any ($1::int[])
     `;
 
     const result = await pool.query(sql, [[...pageIdsForDelete]]);

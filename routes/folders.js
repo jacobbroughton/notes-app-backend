@@ -12,7 +12,9 @@ router.get("/", isAuth, async (req, res) => {
     const SELECT_FOLDERS = `
     select 
     a.*, 
-    string_agg(b.tag_id::text, ',' order by b.tag_id ASC) AS tags
+    c.id tag_id,
+    c.name tag_name,
+    d.color_code tag_color_code
     from folders a
     left join tagged_items b
       on a.id = b.item_id
@@ -21,23 +23,28 @@ router.get("/", isAuth, async (req, res) => {
       and b.created_by_id = $1
     left join tags c
       on b.tag_id = c.id 
+    left join default_color_options d
+      on c.color_id = d.id
       and c.eff_status = 1
     where a.eff_status = 1
     and a.created_by_id = $1
-    GROUP BY a.id
+    group by a.id,
+    c.id,
+    c.name,
+    d.color_code
     `;
 
-    let result = await pool.query(SELECT_FOLDERS, [req.user.id]);
+    let { rows: allFolders } = await pool.query(SELECT_FOLDERS, [req.user.id]);
 
     let folders = [];
     let tier = 1;
 
-    const rootFolders = result.rows
+    const rootFolders = allFolders
       .filter((folder) => folder.parent_folder_id === null)
       .map((folder) => {
         return {
           ...folder,
-          TIER: tier,
+          tier: tier,
         };
       })
       .sort((a, b) => b.created_dttm - a.created_dttm);
@@ -49,7 +56,7 @@ router.get("/", isAuth, async (req, res) => {
         .map((folder) => {
           return {
             ...folder,
-            TIER: tier,
+            tier: tier,
           };
         })
         .sort((a, b) => b.created_dttm - a.created_dttm);
@@ -67,18 +74,19 @@ router.get("/", isAuth, async (req, res) => {
       children.forEach((folder) => determineChildren(folder, allFolders, tier + 1));
     }
 
-    rootFolders.forEach((folder) => determineChildren(folder, folders, 2));
+    rootFolders.forEach((folder) => determineChildren(folder, allFolders, 2));
+
+    console.log("here", folders);
 
     folders.forEach((folder, index) => {
-      folder.TAGS = folder.TAGS
-        ? folder.TAGS.split(",").map((tagId) => parseInt(tagId))
-        : [];
-      folder.ORDER = index + 1;
+      folder.order = index + 1;
     });
 
-    folders = folders.sort((a, b) => b.ORDER - a.ORDER);
+    folders = folders.sort((a, b) => {
+      return b.order - a.order;
+    });
 
-    res.send({ folders: folders });
+    res.send(folders);
   } catch (error) {
     console.log(error);
   }

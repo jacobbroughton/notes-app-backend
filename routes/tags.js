@@ -61,7 +61,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
       return;
     }
 
-    const UPDATE_ASSOCIATED_TAGS = `
+    const UPDATE_ASSOCIATED_tags = `
     update [tagged_items]
     set 
       eff_status = 0,
@@ -69,7 +69,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
     where color_id = $1
     `;
 
-    const result2 = await pool.query(UPDATE_ASSOCIATED_TAGS, [req.body.colorId]);
+    const result2 = await pool.query(UPDATE_ASSOCIATED_tags, [req.body.colorId]);
 
     res.send({
       result: result2,
@@ -81,157 +81,126 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
   }
 });
 
-router.post("/tag-item", isAuth, async (req, res) => {
+router.post("/tag-folder", isAuth, async (req, res) => {
   try {
-    const itemId = req.body.item.is_page ? req.body.item.page_id : req.body.item.id;
+    const itemId = req.body.item.id;
 
-    const DETERMINE_IF_TAGGED_ALREADY = `
+    const CHECK_IF_ITEM_IS_TAGGED = `
     select * from tagged_items
     where item_id = $1
-    and tag_id = $2
   `;
 
-    const result = await pool.query(DETERMINE_IF_TAGGED_ALREADY, [
-      itemId,
+    const result = await pool.query(CHECK_IF_ITEM_IS_TAGGED, [itemId]);
+
+    const existingTaggedItem = result.rows[0];
+
+    console.log({ existingTaggedItem });
+
+    const GET_FOLDERS = `
+    select *
+    from folders
+    where eff_status = 1
+    and created_by_id = $1
+  `;
+
+    let result2 = await pool.query(GET_FOLDERS, [req.user.id]);
+
+    const allFoldersByUser = result2.rows;
+
+    let affectedFolderIds = [];
+
+    function getAffectedFolderIds(folderIdToCheck) {
+      affectedFolderIds.push(folderIdToCheck);
+
+      const children = allFoldersByUser
+        .filter((folder) => folder.parent_folder_id === folderIdToCheck)
+        .map((folder) => folder.id);
+
+      if (children.length === 0) return;
+
+      children.forEach((folderId) => getAffectedFolderIds(folderId));
+    }
+
+    getAffectedFolderIds(req.body.item.id);
+
+    const GET_CHILD_PAGES = `
+    select * 
+    from pages 
+    where folder_id = any ($1::int[])
+    and eff_status = 1
+    and created_by_id = $2
+  `;
+
+    let result3 = await pool.query(GET_CHILD_PAGES, [affectedFolderIds, req.user.id]);
+
+    const childPageIds = result3.rows.map((page) => page.page_id);
+
+    const get_associated_folder_tags = `
+  select * from tagged_items
+  where tag_id = $1
+  and is_page = 0
+  and item_id = any($2::int[])
+`;
+
+    const { rows: associatedFolderTags } = await pool.query(get_associated_folder_tags, [
       req.body.tag.id,
+      affectedFolderIds,
     ]);
 
-    const existingMatchingTag = result.rows[0]
+    const associatedFolderTagIds = associatedFolderTags.map(
+      (taggedItem) => taggedItem.item_id
+    );
 
-    if (req.body.item.is_page) {
+    let associatedPageTags = [];
+    let associatedPageTagIds = [];
 
-      if (existingMatchingTag) {
-        if (existingMatchingTag.eff_status) {
-          const DISABLE_ENABLED_TAGGED_ITEM = `
-            update tagged_items
-            set 
-              eff_status = 0,
-              modified_dttm = now()
-            where id = $1
-          `;
-
-          const result = await pool.query(DISABLE_ENABLED_TAGGED_ITEM, [
-            existingMatchingTag.id,
-          ]);
-
-         res.send({ result, message: "Tag successfully disabled"});
-        } else {
-          const ENABLE_DISABLED_TAGGED_ITEM = `
-            update tagged_items
-            set eff_status = 1
-            where id = $1
-          `;
-
-          const result = await pool.query(ENABLE_DISABLED_TAGGED_ITEM, [
-            existingMatchingTag.id,
-          ]);
-          res.send({ result, message: "Tag successfully enabled" });
-        }
-      } else {
-       const result = await addTaggedItem(
-          req.body.tag.id,
-          itemId,
-          req.body.item.is_page,
-          req.user.id
-        );
-        res.send({ result, message: "Tag successfully added" });
-      }
-
-      
-    } else {
-      const GET_FOLDERS = `
-        select 
-        *
-        from folders
-        where eff_status = 1
-        and created_by_id = $1
-        `;
-
-      let result = await pool.query(GET_FOLDERS, [req.user.id]);
-
-      const allFoldersByUser = result.rows
-
-      let affectedFolderIds = [];
-
-      function getChildren(folderIdToCheck) {
-        affectedFolderIds.push(folderIdToCheck);
-
-
-        const children = allFoldersByUser
-          .filter((folder) => folder.parent_folder_id === folderIdToCheck)
-          .map((folder) => folder.id);
-
-        if (children.length === 0) return;
-
-        children.forEach((folderId) => getChildren(folderId));
-      }
-
-      getChildren(req.body.item.id);
-
-      const GET_CHILD_PAGES = `
-        select * 
-        from pages 
-        where folder_id = ANY ($1::int[])
-        and eff_status = 1
-        and created_by_id = $2
+    if (childPageIds.length > 0) {
+      const GET_ASSOCIATED_PAGE_TAGS = `
+        select * from tagged_items
+        where tag_id = $1
+        and is_page = 1
+        and case
+          when $2=1 then item_id = any($3::int[])
+          else 1=1
+        end
       `;
 
-      let result2 = await pool.query(GET_CHILD_PAGES, [
-        affectedFolderIds,
-        req.user.id,
-      ]);
-
-      const childPages = result2.rows
-
-      let childPageIds = childPages.map((page) => page.page_id);
-
-      const GET_ASSOCIATED_FOLDER_TAGS = `
-      select * from tagged_items
-      where tag_id = $1
-      and is_page = 0
-      and item_id = ANY($2::int[])
-    `;
-
-      const result3 = await pool.query(GET_ASSOCIATED_FOLDER_TAGS, [
+      const { rows: associatedPageTags } = await pool.query(GET_ASSOCIATED_PAGE_TAGS, [
         req.body.tag.id,
-        affectedFolderIds,
+        childPageIds.length !== 0 ? 1 : 0,
+        childPageIds.length !== 0 ? childPageIds : "null",
       ]);
 
-      const associatedFolderTags = result3.rows
+      associatedPageTagIds = associatedPageTags.map((taggedPage) => taggedPage.id);
+    }
 
-      const associatedFolderTagIds = associatedFolderTags.map(
-        (taggedFolder) => taggedFolder.id
-      );
+    if (existingTaggedItem) {
+      const UPDATE_EXISTING_TAGGED_FOLDERS = `
+        update tagged_items
+        set 
+          eff_status = $1,
+          modified_dttm = now(),
+          tag_id = $2
+        --where id = any($3::int[])
+        where id = $3
+      `;
 
-      let associatedPageTags = [];
-      let associatedPageTagIds = [];
+      let result = await pool.query(UPDATE_EXISTING_TAGGED_FOLDERS, [
+        req.body.tag.id === existingTaggedItem.tag_id && existingTaggedItem.eff_status
+          ? 0
+          : 1,
+        req.body.tag.id,
+        existingTaggedItem.id,
+      ]);
 
-      if (childPageIds.length > 0) {
-        const GET_ASSOCIATED_PAGE_TAGS = `
-          select * from tagged_items
-          where tag_id = $1
-          and is_page = 1
-          and case
-            when $2=1 then item_id = ANY($3::int[])
-            else 1=1
-          end
-        `;
-
-        const result = await pool.query(GET_ASSOCIATED_PAGE_TAGS, [
-          req.body.tag.id,
-          childPageIds.length !== 0 ? 1 : 0,
-          childPageIds.length !== 0 ? childPageIds : "null",
-        ]);
-
-        associatedPageTags = result.rows
-
-        console.log("associatedPageTags1", associatedPageTags);
-
-        associatedPageTagIds = associatedPageTags.map((taggedPage) => taggedPage.id);
+      if (!result) {
+        res.statusText = "There was an issue updating existing tagged folders";
+        res.status(409).end();
+        return;
       }
 
-      if (existingMatchingTag && associatedFolderTags.length > 0) {
-        const UPDATE_EXISTING_TAGGED_FOLDERS = `
+      if (associatedPageTags.length > 0) {
+        const UPDATE_EXISTING_TAGGED_PAGES = `
           update tagged_items
           set 
             eff_status = (
@@ -241,115 +210,155 @@ router.post("/tag-item", isAuth, async (req, res) => {
               end
             ),
             modified_dttm = now()
-          where id = ANY($2::int[])
-          and is_page = 0
+          where id = any($2::int[])
+          and is_page = 1
         `;
 
-        let result = await pool.query(UPDATE_EXISTING_TAGGED_FOLDERS, [
+        result = await pool.query(UPDATE_EXISTING_TAGGED_PAGES, [
           req.body.toggleState,
-          associatedFolderTagIds,
+          associatedPageTagIds,
         ]);
 
         if (!result) {
-          res.statusText = "There was an issue updating existing tagged folders";
+          res.statusText = "There was an issue updating existing tagged pages";
           res.status(409).end();
           return;
         }
+      }
 
-        if (associatedPageTags.length > 0) {
-          const UPDATE_EXISTING_TAGGED_PAGES = `
+      res.send({ result, message: "Successfully updated existing tagged items" });
+    } else {
+      const associatedPageTagIds = associatedPageTags.map(
+        (taggedItem) => taggedItem.item_id
+      );
+
+      let newItemsArray = [
+        ...affectedFolderIds
+          .filter((folderId) => !associatedFolderTagIds.includes(folderId))
+          .map((folderId) => [req.body.tag.id, folderId, 0, req.user.id]),
+        ...childPageIds
+          .filter((pageId) => !associatedPageTagIds.includes(pageId))
+          .map((pageId) => [req.body.tag.id, pageId, 1, req.user.id]),
+      ];
+
+      const INSERT_NEW_TAGGED_ITEMS = `
+    insert into tagged_items (
+      tag_id,
+      item_id,
+      is_page,
+      eff_status,
+      created_dttm,
+      modified_dttm,
+      created_by_id,
+      modified_by_id
+    ) values ${newItemsArray
+      .map(
+        (_, i) =>
+          `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, 1, now(), null, $${
+            i * 7 + 4
+          }, null)`
+      )
+      .join(", ")}
+  `;
+
+      const values = newItemsArray.flat();
+
+      const result = await pool.query(INSERT_NEW_TAGGED_ITEMS, [...values]);
+
+      if (!result) {
+        res.statusMessage = "There was an issue adding new tagged items";
+        res.status(409).end();
+        return;
+      }
+
+      res.send({ result, message: "Successfully added new tagged items" });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+router.post("/tag-page", isAuth, async (req, res) => {
+  try {
+    const isPage = req.body.item.is_page;
+    const itemId = isPage ? req.body.item.page_id : req.body.item.id;
+
+    const CHECK_IF_ITEM_IS_TAGGED = `
+    select * from tagged_items
+    where item_id = $1
+  `;
+
+    const result = await pool.query(CHECK_IF_ITEM_IS_TAGGED, [itemId]);
+
+    const existingTaggedItem = result.rows[0];
+    console.log(req.body);
+
+    if (existingTaggedItem) {
+      if (existingTaggedItem.id === req.body.tag.id) {
+        const ENABLE_OR_DISABLE_TAGGED_ITEM = `
+              update tagged_items
+              set 
+                eff_status = $1,
+                modified_dttm = now()
+              where id = $2
+            `;
+
+        const result = await pool.query(ENABLE_OR_DISABLE_TAGGED_ITEM, [
+          existingTaggedItem.eff_status ? 0 : 1,
+          existingTaggedItem.id,
+        ]);
+
+        res.send({ result, message: "Tag successfully disabled" });
+      } else {
+        const update_tagged_item = `
             update tagged_items
-            set 
-              eff_status = (
-                case 
-                  when $1 = 1 then 1
-                  else 0
-                end
-              ),
-              modified_dttm = now()
-            where id = ANY($2::int[])
-            and is_page = 1
+            set tag_id = $1,
+              modified_dttm = now(),
+              modified_by_id = $2,
+              eff_status = 1
+            where id = $3
           `;
 
-          result = await pool.query(UPDATE_EXISTING_TAGGED_PAGES, [
-            req.body.toggleState,
-            associatedPageTagIds,
-          ]);
+        const result = await pool.query(update_tagged_item, [
+          req.body.tag.id,
+          req.user.id,
+          existingTaggedItem.id,
+        ]);
 
-          if (!result) {
-            res.statusText = "There was an issue updating existing tagged pages";
-            res.status(409).end();
-            return;
-          }
-        }
+        console.log(result);
 
-        res.send({ result, message: "Successfully updated existing tagged items" });
-      } else {
-        console.log("associatedPageTags", associatedPageTags);
-
-        const INSERT_NEW_TAGGED_ITEMS = `
-          insert into tagged_items (
-            tag_id,
-            item_id,
-            is_page,
-            eff_status,
-            created_dttm,
-            modified_dttm,
-            created_by_id,
-            modified_by_id
-          ) values $1
-        `;
-
-        const SYSDATE = {
-          toSqlString: function () {
-            return "now()";
-          },
-        };
-
-        const associatedFolderTagTagIds = associatedFolderTags.map(
-          (taggedItem) => taggedItem.item_id
-        );
-        const associatedPageTagTagIds = associatedPageTags.map(
-          (taggedItem) => taggedItem.item_id
-        );
-
-        let newItemsArray = [
-          ...affectedFolderIds
-            .filter((folderId) => !associatedFolderTagTagIds.includes(folderId))
-            .map((folderId) => [
-              req.body.tag.id,
-              folderId,
-              0,
-              1,
-              SYSDATE,
-              null,
-              req.user.id,
-              null,
-            ]),
-          ...childPageIds
-            .filter((pageId) => !associatedPageTagTagIds.includes(pageId))
-            .map((pageId) => [
-              req.body.tag.id,
-              pageId,
-              1,
-              1,
-              SYSDATE,
-              null,
-              req.user.id,
-              null,
-            ]),
-        ];
-
-        const result = await pool.query(INSERT_NEW_TAGGED_ITEMS, [newItemsArray]);
-
-        if (!result) {
-          res.statusMessage = "There was an issue adding new tagged items";
-          res.status(409).end();
-          return;
-        }
-
-        res.send({ result, message: "Successfully added new tagged items" });
+        res.send({ result, message: "Tag successfully updated" });
       }
+    } else {
+      const ADD_TAGGED_ITEM = `
+        insert into tagged_items (
+          tag_id,
+          item_id,
+          is_page,
+          eff_status,
+          created_dttm,
+          modified_dttm,
+          created_by_id,
+          modified_by_id
+        ) values (
+          $1,
+          $2,
+          $3,
+          1,
+          now(),
+          NULL,
+          $4,
+          NULL
+        )
+      `;
+      const result = await pool.query(ADD_TAGGED_ITEM, [
+        req.body.tag.id,
+        itemId,
+        isPage ? 1 : 0,
+        req.user.id,
+      ]);
+
+      res.send({ result, message: "Tag successfully added" });
     }
   } catch (error) {
     console.log(error);
@@ -436,14 +445,14 @@ router.post("/new", isAuth, async (req, res) => {
 
     const justCreatedTag = result3.rows[0];
 
-    if (req.body.isForItem) {
-      await addTaggedItem(
-        justCreatedTag.id,
-        itemFromRequest.is_page ? itemFromRequest.page_id : itemFromRequest.id,
-        itemFromRequest.is_page,
-        req.user.id
-      );
-    }
+    // const result4 = await addTaggedItem(
+    //     justCreatedTag.id,
+    //     itemFromRequest.is_page ? itemFromRequest.page_id : itemFromRequest.id,
+    //     itemFromRequest.is_page,
+    //     req.user.id
+    //   );
+
+    // console.log('HERE', result4)
 
     res.send({
       result,
@@ -477,11 +486,9 @@ router.post("/edit", isAuth, async (req, res) => {
       return;
     }
 
-  
-
     const result2 = await getSingleTag(req.user.id, req.body.tag_id);
 
-    console.log(result2.rows)
+    console.log(result2.rows);
 
     if (!result2) {
       res.statusMessage = "There was an issue getting the tag that was just updated";
@@ -489,7 +496,11 @@ router.post("/edit", isAuth, async (req, res) => {
       return;
     }
 
-    res.send({ result, justModifiedTag: result2.rows[0], message: "Tag successfully edited" });
+    res.send({
+      result,
+      justModifiedTag: result2.rows[0],
+      message: "Tag successfully edited",
+    });
   } catch (err) {
     console.log(err);
   }
@@ -567,7 +578,7 @@ async function getSingleTag(reqUserId, tagId) {
 }
 
 async function addTaggedItem(tagId, itemId, itemIsPage, userId) {
-  console.log({tagId, itemId, itemIsPage, userId})
+  console.log({ tagId, itemId, itemIsPage, userId });
   const ADD_TAGGED_ITEM = `
   insert into tagged_items (
     tag_id,
