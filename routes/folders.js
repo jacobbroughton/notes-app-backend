@@ -76,8 +76,6 @@ router.get("/", isAuth, async (req, res) => {
 
     rootFolders.forEach((folder) => determineChildren(folder, allFolders, 2));
 
-    console.log("here", folders);
-
     folders.forEach((folder, index) => {
       folder.order = index + 1;
     });
@@ -120,11 +118,7 @@ router.post("/new", isAuth, async (req, res, next) => {
       req.user.id,
     ]);
 
-    if (!result) {
-      res.statusMessage = "There was an error adding the new folder";
-      res.status(400).end();
-      return;
-    }
+    if (!result) throw "There was an error adding the new folder"
 
     res.send({ result, message: "Successfully added folder" });
   } catch (error) {
@@ -134,80 +128,66 @@ router.post("/new", isAuth, async (req, res, next) => {
 
 router.post("/delete", isAuth, async (req, res, next) => {
   try {
-    async function getChildren(folderId) {
-      return await pool.query(
-        `
-      select id from folders
-      where parent_folder_id = $1
-      and eff_status = 1
-    `,
-        [folderId]
-      );
-    }
-
-    async function getPagesInFolder(folderId) {
-      return await pool.query(
-        `
-      select page_id from pages
-      where folder_id = $1
-      and eff_status = 1
-    `,
-        [folderId]
-      );
-    }
-
-    async function deleteFolders(folderIds) {
-      return await pool.query(
-        `
-      update folders
-      set 
-        eff_status = 0,
-        modified_dttm = now()
-      where id IN ($1)
-    `,
-        [...folderIds]
-      );
-    }
-
-    async function deletePages(pageIds) {
-      return await pool.query(
-        `
-      update pages
-      set 
-        eff_status = 0,
-        modified_dttm = now()
-      where page_id IN ($1)
-    `,
-        [...pageIds]
-      );
-    }
-
     let foldersToDelete = [];
     let pagesToDelete = [];
 
     foldersToDelete.push(req.body.folderId);
 
+
     async function getNestedRows(folderId) {
-      const children = await getChildren(folderId);
-      const pages = await getPagesInFolder(folderId);
+      const {rows: childFolders} = await pool.query(
+        `
+          select id from folders
+          where parent_folder_id = $1
+          and eff_status = 1
+        `,
+        [folderId]
+      );
+
+      const {rows: pages} = await pool.query(
+        `
+        select page_id from pages
+        where folder_id = $1
+        and eff_status = 1
+      `,
+        [folderId]
+      );
 
       for (let i = 0; i < pages.length; i++) {
         pagesToDelete.push(pages[i].page_id);
       }
 
-      for (let i = 0; i < children.length; i++) {
-        foldersToDelete.push(children[i].id);
-        await getNestedRows(children[i].id);
+      for (let i = 0; i < childFolders.length; i++) {
+        foldersToDelete.push(childFolders[i].id);
+        await getNestedRows(childFolders[i].id);
       }
+
     }
 
     await getNestedRows(req.body.folderId);
 
-    if (pagesToDelete.length > 0) await deletePages(pagesToDelete);
+    if (pagesToDelete.length > 0)
+      await pool.query(
+        `
+        update pages
+        set 
+          eff_status = 0,
+          modified_dttm = now()
+        where page_id = any($1::int[])
+      `,
+        [pagesToDelete]
+      );
 
-    const result = await deleteFolders(foldersToDelete);
-
-    console.log(result);
+    const result = await pool.query(
+      `
+        update folders
+        set 
+          eff_status = 0,
+          modified_dttm = now()
+        where id = any ($1::int[])
+      `,
+      [foldersToDelete]
+    );
 
     res.send({
       deletedFolders: foldersToDelete,
@@ -223,8 +203,6 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
   try {
     const folderIdsForDelete = req.body.folders.map((folder) => folder.id);
 
-    console.log(folderIdsForDelete);
-
     const sql = `
       update folders
     set 
@@ -235,11 +213,7 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 
     const result = await pool.query(sql, [[folderIdsForDelete]]);
 
-    if (!result) {
-      res.statusText = "There was an error deleting multiple folders";
-      res.status(409).end();
-      return;
-    }
+    if (!result) throw "There was an error deleting multiple folders";
 
     res.send({
       result,
@@ -248,6 +222,8 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.statusText = error.toString();
+    res.status(409).end();
   }
 });
 
@@ -260,15 +236,13 @@ router.post("/rename", isAuth, async (req, res) => {
     `;
     const result = await pool.query(sql, [req.body.newName, req.body.folderId]);
 
-    if (!result) {
-      res.statusText = "There was an error renaming this folder";
-      res.status(409).end();
-      return;
-    }
+    if (!result) throw "There was an error renaming this folder";
 
     res.send({ result, message: "Successfully renamed folder" });
   } catch (error) {
     console.log(error);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 

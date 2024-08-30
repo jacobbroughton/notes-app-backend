@@ -32,9 +32,13 @@ router.get("/", isAuth, async (req, res) => {
 
     const result = await pool.query(GET_PAGES, [req.user.id, req.user.id]);
 
+    if (!result) throw "There was a problem getting pages";
+
     res.send(result.rows);
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -72,6 +76,8 @@ router.post("/new", isAuth, async (req, res) => {
       req.user.id,
     ]);
 
+    if (!result) throw "There as an error adding this page";
+
     res.send({
       result,
       requestBody: req.body,
@@ -79,16 +85,14 @@ router.post("/new", isAuth, async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
 router.post("/edit", isAuth, async (req, res) => {
   try {
-    if (!req.body.name) {
-      res.statusText = "Name cannot be empty";
-      res.status(409).end();
-      return;
-    }
+    if (!req.body.name) throw "Name cannot be empty";
 
     const UPDATE_PAGE = `
       update pages
@@ -105,11 +109,7 @@ router.post("/edit", isAuth, async (req, res) => {
       req.body.pageId,
     ]);
 
-    if (!result) {
-      res.statusText = "There was an error editing the page";
-      res.status(409).end();
-      return;
-    }
+    if (!result) throw "There was an error editing the page";
 
     const SELECT_UPDATED_PAGE = `
         select * 
@@ -122,6 +122,8 @@ router.post("/edit", isAuth, async (req, res) => {
     res.send({ modifiedPage: result2.rows[0], message: "Successfully edited page" });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -145,9 +147,13 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
 
     const result = await pool.query(sql);
 
+    if (!result) throw "There was a problem updating parent folder";
+
     res.send({ result, message: "Successfully updated parent folder id" });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -163,9 +169,13 @@ router.post("/delete", isAuth, async (req, res) => {
 
     const result = await pool.query(sql, [req.body.pageId]);
 
+    if (!result) throw "There was an error deleting page";
+
     res.send({ result, message: "Successfully deleted page" });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -183,6 +193,8 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
 
     const result = await pool.query(sql, [[...pageIdsForDelete]]);
 
+    if (!result) throw "There was an error deleting multiple items";
+
     res.send({
       result,
       deletedPageIds: pageIdsForDelete,
@@ -190,6 +202,8 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -202,9 +216,14 @@ router.post("/rename", isAuth, async (req, res) => {
       `;
 
     const result = await pool.query(sql, [req.body.newName, req.body.pageId]);
+
+    if (!result) throw "There was an error renaming page";
+
     res.send({ result, message: "Successfully renamed page" });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -212,19 +231,22 @@ router.post("/favorite", isAuth, async (req, res) => {
   try {
     const sql = `
       update pages
-      set IS_FAVORITE = (
-        case 
-          when $1 = 1 then 1
-          else 0
-        end
-      )
+      set is_favorite = $1
       where page_id = $2
     `;
 
-    const result = await pool.query(sql, [req.body.favoriteStatus, req.body.pageId]);
+    const result = await pool.query(sql, [
+      req.body.favoriteStatus ? 1 : 0,
+      req.body.pageId,
+    ]);
+
+    if (!result) throw 'There was an error updating "favorite" state on this page';
+
     res.send({ result, message: "Successfully favorited page" });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 

@@ -35,16 +35,7 @@ router.post("/register", async (req, res) => {
 
     const result = await pool.query(sql1, [req.body.username]);
 
-    if (result.length) {
-      res.send({
-        code: 2,
-        message: "User already exists",
-        user: null,
-      });
-      res.statusMessage = "User already exists";
-      res.status(409).end();
-      return;
-    }
+    if (result.rows.length) throw "User already exists";
 
     const saltHash = genPassword(req.body.password);
 
@@ -71,7 +62,7 @@ router.post("/register", async (req, res) => {
     // Save the user to the database
     const result2 = await pool.query(sql2, [req.body.username, hash, salt]);
 
-    console.log(result2)
+    if (!result2) throw "There was a problem adding user to database";
 
     const sql3 = `
       insert into tags (name, color_id, eff_status, created_dttm, modified_dttm, created_by_id, modified_by_id)
@@ -91,9 +82,11 @@ router.post("/register", async (req, res) => {
           ('Finance', 13, 1, NOW(), NULL, $1, NULL),
           ('Learning', 14, 1, NOW(), NULL, $1, NULL),
           ('Miscellaneous', 15, 1, NOW(), NULL, $1, NULL);
-    `
+    `;
 
     const result3 = await pool.query(sql3, [result2.rows[0].id]);
+
+    if (!result3) throw "There was a problem adding default tags";
 
     res.send({ result: result2, message: "Successfully registered" });
   } catch (error) {
@@ -113,16 +106,18 @@ router.get("/admin-route", isAdmin, (req, res) => {
 
 // Removes req.session.passport.user property from session
 router.get("/logout", (req, res, next) => {
-  req.logout((error) => {
-    if (error) {
-      res.statusMessage = "There was an error logging out";
-      res.status(409).end();
-      return;
-    }
-    req.session.destroy();
-    res.clearCookie("connect.sid");
-    res.send({ message: "Logged out successfully" });
-  });
+  try {
+    req.logout((error) => {
+      if (error) throw "There was an error logging out"
+      req.session.destroy();
+      res.clearCookie("connect.sid");
+      res.send({ message: "Logged out successfully" });
+    });
+  } catch (err) {
+    console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
+  }
 });
 
 export default router;

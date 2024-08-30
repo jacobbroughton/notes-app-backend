@@ -1,20 +1,34 @@
 import express from "express";
 import { pool } from "../config/database.js";
 import { isAuth } from "../authMiddleware.js";
-import util from "util";
-import { body } from "express-validator";
 
 const router = express.Router();
 
 router.get("/", isAuth, async (req, res) => {
   try {
-    let result = await getTags(req.user.id);
+    const sql = `
+    select a.*, 
+    case
+      when b.color_code IS NOT NULL then b.color_code
+      else '#000000'
+    end AS color_code
+    from tags a
+    left join default_color_options b
+    on a.color_id = b.id
+    and b.eff_status = 1
+    where a.eff_status = 1 
+    and a.created_by_id = $1
+  `;
+
+    const result = await pool.query(sql, [req.user.id]);
 
     if (!result.rows) throw "No tags found";
 
     res.send(result.rows);
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -28,11 +42,7 @@ router.get("/color-options", isAuth, async (req, res) => {
 
     const result = await pool.query(GET_DEFAULT_COLORS);
 
-    if (!result) {
-      res.statusText = "Failed to fetch default color options";
-      res.status(409).end();
-      return;
-    }
+    if (!result) throw "Failed to fetch default color options";
 
     res.send({
       result: result.rows,
@@ -40,6 +50,8 @@ router.get("/color-options", isAuth, async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -55,11 +67,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
 
     const result1 = await pool.query(DISABLE_COLOR, [req.body.colorId, req.user.id]);
 
-    if (!result1) {
-      res.statusText = "Failed to delete custom color";
-      res.status(409).end();
-      return;
-    }
+    if (!result1) throw "Failed to delete custom color";
 
     const UPDATE_ASSOCIATED_tags = `
     update [tagged_items]
@@ -78,6 +86,8 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+    res.statusText = err.toString();
+    res.status(409).end();
   }
 });
 
@@ -136,11 +146,11 @@ router.post("/tag-folder", isAuth, async (req, res) => {
     const childPageIds = result3.rows.map((page) => page.page_id);
 
     const get_associated_folder_tags = `
-  select * from tagged_items
-  where tag_id = $1
-  and is_page = 0
-  and item_id = any($2::int[])
-`;
+      select * from tagged_items
+      where tag_id = $1
+      and is_page = 0
+      and item_id = any($2::int[])
+    `;
 
     const { rows: associatedFolderTags } = await pool.query(get_associated_folder_tags, [
       req.body.tag.id,
@@ -181,7 +191,6 @@ router.post("/tag-folder", isAuth, async (req, res) => {
           eff_status = $1,
           modified_dttm = now(),
           tag_id = $2
-        --where id = any($3::int[])
         where id = $3
       `;
 
@@ -193,88 +202,90 @@ router.post("/tag-folder", isAuth, async (req, res) => {
         existingTaggedItem.id,
       ]);
 
-      if (!result) {
-        res.statusText = "There was an issue updating existing tagged folders";
-        res.status(409).end();
-        return;
-      }
+      if (!result) throw "There was an issue updating existing tagged folders";
 
       if (associatedPageTags.length > 0) {
         const UPDATE_EXISTING_TAGGED_PAGES = `
           update tagged_items
           set 
-            eff_status = (
-              case 
-                when $1 = 1 then 1
-                else 0
-              end
-            ),
+            eff_status = $1,
             modified_dttm = now()
           where id = any($2::int[])
           and is_page = 1
         `;
 
         result = await pool.query(UPDATE_EXISTING_TAGGED_PAGES, [
-          req.body.toggleState,
+          req.body.toggleState ? 1 : 0,
           associatedPageTagIds,
         ]);
 
-        if (!result) {
-          res.statusText = "There was an issue updating existing tagged pages";
-          res.status(409).end();
-          return;
-        }
+        if (!result) throw "There was an issue updating existing tagged pages";
       }
 
       res.send({ result, message: "Successfully updated existing tagged items" });
     } else {
-      const associatedPageTagIds = associatedPageTags.map(
-        (taggedItem) => taggedItem.item_id
-      );
-
-      let newItemsArray = [
-        ...affectedFolderIds
-          .filter((folderId) => !associatedFolderTagIds.includes(folderId))
-          .map((folderId) => [req.body.tag.id, folderId, 0, req.user.id]),
-        ...childPageIds
-          .filter((pageId) => !associatedPageTagIds.includes(pageId))
-          .map((pageId) => [req.body.tag.id, pageId, 1, req.user.id]),
-      ];
-
       const INSERT_NEW_TAGGED_ITEMS = `
-    insert into tagged_items (
-      tag_id,
-      item_id,
-      is_page,
-      eff_status,
-      created_dttm,
-      modified_dttm,
-      created_by_id,
-      modified_by_id
-    ) values ${newItemsArray
-      .map(
-        (_, i) =>
-          `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, 1, now(), null, $${
-            i * 7 + 4
-          }, null)`
-      )
-      .join(", ")}
-  `;
+        insert into tagged_items (
+          tag_id,
+          item_id,
+          is_page,
+          eff_status,
+          created_dttm,
+          modified_dttm,
+          created_by_id,
+          modified_by_id
+        ) values ($1, $2, $3, 1, now(), null, $4, null)
+      `;
 
-      const values = newItemsArray.flat();
+      const result = await pool.query(INSERT_NEW_TAGGED_ITEMS, [
+        req.body.tag.id,
+        itemId,
+        0,
+        req.user.id,
+      ]);
 
-      const result = await pool.query(INSERT_NEW_TAGGED_ITEMS, [...values]);
-
-      if (!result) {
-        res.statusMessage = "There was an issue adding new tagged items";
-        res.status(409).end();
-        return;
-      }
+      if (!result) throw "There was an issue adding new tagged items";
 
       res.send({ result, message: "Successfully added new tagged items" });
+      // const associatedPageTagIds = associatedPageTags.map(
+      //   (taggedItem) => taggedItem.item_id
+      // );
+
+      // let newItemsArray = [
+      //   ...affectedFolderIds
+      //     .filter((folderId) => !associatedFolderTagIds.includes(folderId))
+      //     .map((folderId) => [req.body.tag.id, folderId, 0, req.user.id]),
+      //   ...childPageIds
+      //     .filter((pageId) => !associatedPageTagIds.includes(pageId))
+      //     .map((pageId) => [req.body.tag.id, pageId, 1, req.user.id]),
+      // ];
+
+      //     const INSERT_NEW_TAGGED_ITEMS = `
+      //   insert into tagged_items (
+      //     tag_id,
+      //     item_id,
+      //     is_page,
+      //     eff_status,
+      //     created_dttm,
+      //     modified_dttm,
+      //     created_by_id,
+      //     modified_by_id
+      //   ) values ${newItemsArray
+      //     .map(
+      //       (_, i) =>
+      //         `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, 1, now(), null, $${
+      //           i * 4 + 4
+      //         }, null)`
+      //     )
+      //     .join(", ")}
+      // `;
+
+      // const values = newItemsArray.flat();
     }
   } catch (error) {
     console.log(error);
+    res.statusText = error.toString();
+    res.status(409).end();
   }
 });
 
@@ -296,12 +307,12 @@ router.post("/tag-page", isAuth, async (req, res) => {
     if (existingTaggedItem) {
       if (existingTaggedItem.id === req.body.tag.id) {
         const ENABLE_OR_DISABLE_TAGGED_ITEM = `
-              update tagged_items
-              set 
-                eff_status = $1,
-                modified_dttm = now()
-              where id = $2
-            `;
+          update tagged_items
+          set 
+            eff_status = $1,
+            modified_dttm = now()
+          where id = $2
+        `;
 
         const result = await pool.query(ENABLE_OR_DISABLE_TAGGED_ITEM, [
           existingTaggedItem.eff_status ? 0 : 1,
@@ -311,13 +322,13 @@ router.post("/tag-page", isAuth, async (req, res) => {
         res.send({ result, message: "Tag successfully disabled" });
       } else {
         const update_tagged_item = `
-            update tagged_items
-            set tag_id = $1,
-              modified_dttm = now(),
-              modified_by_id = $2,
-              eff_status = 1
-            where id = $3
-          `;
+          update tagged_items
+          set tag_id = $1,
+            modified_dttm = now(),
+            modified_by_id = $2,
+            eff_status = 1
+          where id = $3
+        `;
 
         const result = await pool.query(update_tagged_item, [
           req.body.tag.id,
@@ -440,8 +451,6 @@ router.post("/new", isAuth, async (req, res) => {
       res.status(409).end();
       return;
     }
-
-    const itemFromRequest = req.body.item;
 
     const justCreatedTag = result3.rows[0];
 
