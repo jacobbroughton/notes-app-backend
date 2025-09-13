@@ -89,8 +89,8 @@ router.post("/register", async (req, res) => {
     if (!result3) throw "There was a problem adding default tags";
 
     res.send({ result: result2, message: "Successfully registered" });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log('/register', err);
     res.statusMessage = error.message || error.sqlMessage || "There was an error";
     res.status(409).end();
   }
@@ -114,7 +114,7 @@ router.get("/logout", (req, res, next) => {
       res.send({ message: "Logged out successfully" });
     });
   } catch (err) {
-    console.log(err);
+    console.log('/logout', err);
     res.statusText = err.toString();
     res.status(409).end();
   }

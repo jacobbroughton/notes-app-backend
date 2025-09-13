@@ -12,18 +12,18 @@ const strategy = new LocalStrategy(
         where username = $1
       `;
 
-       pool.query(sql, [username], (err, result) => {
-        if (err) throw err
-        console.log("Made it!", result)
+      pool.query(sql, [username], (err, result) => {
+        if (err) throw err;
+        console.log("Made it!", result);
         const user = result.rows[0];
 
         if (!user) {
-          console.log("No user found")
+          console.log("No user found");
           return done(null, false);
         }
-  
-        const isValid = validatePassword(password, user.hash, user.salt);
-  
+
+        const passwordIsValid = validatePassword(password, user.hash, user.salt);
+
         // bcrypt.compare(password, user.password, (err, res) => {
         //   if (res) {
         //     return done(null, user);
@@ -31,22 +31,18 @@ const strategy = new LocalStrategy(
         //     return done(null, false, { message: 'Incorrect password.' });
         //   }
         // });
-  
-        if (isValid) {
-          console.log("valid password");
+
+        if (passwordIsValid) {
+          console.log('passwordIsValid -- user: ', user);
           return done(null, user);
         }
-  
+
         return done(null, false, {
           message: "Username or password is incorrect",
         });
       });
-
-
-
-
     } catch (err) {
-      console.error(err)
+      console.error(err);
       done(err);
     }
   }

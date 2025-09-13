@@ -29,7 +29,14 @@ router.get("/", isAuth, async (req, res) => {
     where a.eff_status = 1
     and a.created_by_id = $1
     group by a.id,
+    a.eff_status,
+    a.parent_folder_id,
+    a.created_dttm,
+    a.created_by_id,
+    a.modified_dttm,
+    a.modified_by_id,
     c.id,
+    a.name,
     c.name,
     d.color_code
     `;
@@ -85,8 +92,8 @@ router.get("/", isAuth, async (req, res) => {
     });
 
     res.send(folders);
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log('/folders/', err);
   }
 });
 
@@ -121,8 +128,8 @@ router.post("/new", isAuth, async (req, res, next) => {
     if (!result) throw "There was an error adding the new folder"
 
     res.send({ result, message: "Successfully added folder" });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log('/folders/new', err);
   }
 });
 
@@ -194,8 +201,8 @@ router.post("/delete", isAuth, async (req, res, next) => {
       deletedPages: pagesToDelete,
       message: "Folders and pages successfully deleted",
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error('/folders/delete', err);
   }
 });
 
@@ -220,8 +227,8 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
       deletedFolderIds: folderIdsForDelete,
       message: "Successfully deleted multiple folders",
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log('/folders/delete-multiple', err);
     res.statusText = error.toString();
     res.status(409).end();
   }
@@ -239,8 +246,8 @@ router.post("/rename", isAuth, async (req, res) => {
     if (!result) throw "There was an error renaming this folder";
 
     res.send({ result, message: "Successfully renamed folder" });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log('/folders/rename', err);
     res.statusText = err.toString();
     res.status(409).end();
   }

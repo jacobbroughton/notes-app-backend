@@ -25,8 +25,18 @@ router.get("/", isAuth, async (req, res) => {
       where a.eff_status = 1
       and a.created_by_id = $2
       group by a.page_id,
+      a.folder_id,
+      a.name,
+      a.created_dttm,
+      a.is_favorite,
+      a.body,
+      a.eff_status,
+      a.modified_dttm,
+      a.modified_by_id,
+      a.created_by_id,
       c.id,
       c.name,
+      a.title,
       d.color_code
       `;
 
@@ -36,7 +46,7 @@ router.get("/", isAuth, async (req, res) => {
 
     res.send(result.rows);
   } catch (err) {
-    console.log(err);
+    console.log('/pages', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -84,7 +94,7 @@ router.post("/new", isAuth, async (req, res) => {
       message: "Successfully added a new page",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/new', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -121,7 +131,7 @@ router.post("/edit", isAuth, async (req, res) => {
     const result2 = await pool.query(SELECT_UPDATED_PAGE, [req.body.pageId]);
     res.send({ modifiedPage: result2.rows[0], message: "Successfully edited page" });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/edit', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -151,7 +161,7 @@ router.post("/updateParentFolder", isAuth, async (req, res) => {
 
     res.send({ result, message: "Successfully updated parent folder id" });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/updateParentFolder', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -173,7 +183,7 @@ router.post("/delete", isAuth, async (req, res) => {
 
     res.send({ result, message: "Successfully deleted page" });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/delete', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -201,7 +211,7 @@ router.post("/delete-multiple", isAuth, async (req, res) => {
       message: "Successfully deleted multiple pages",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/delete-multiple', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -221,7 +231,7 @@ router.post("/rename", isAuth, async (req, res) => {
 
     res.send({ result, message: "Successfully renamed page" });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/rename', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -244,7 +254,7 @@ router.post("/favorite", isAuth, async (req, res) => {
 
     res.send({ result, message: "Successfully favorited page" });
   } catch (err) {
-    console.log(err);
+    console.log('/pages/favorite', err);
     res.statusText = err.toString();
     res.status(409).end();
   }

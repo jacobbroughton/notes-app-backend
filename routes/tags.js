@@ -26,7 +26,7 @@ router.get("/", isAuth, async (req, res) => {
 
     res.send(result.rows);
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -49,7 +49,7 @@ router.get("/color-options", isAuth, async (req, res) => {
       message: "Successfully got color options",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -85,7 +85,7 @@ router.post("/color-options/delete", isAuth, async (req, res) => {
       message: "Successfully deleted custom color option",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
     res.statusText = err.toString();
     res.status(409).end();
   }
@@ -469,7 +469,7 @@ router.post("/new", isAuth, async (req, res) => {
       message: "Tag successfully added",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
   }
 });
 
@@ -511,7 +511,7 @@ router.post("/edit", isAuth, async (req, res) => {
       message: "Tag successfully edited",
     });
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
   }
 });
 
@@ -547,7 +547,7 @@ router.post("/delete", isAuth, async (req, res) => {
 
     res.send({ result: result2, message: "Tag successfully deleted" });
   } catch (err) {
-    console.log(err);
+    console.log('/', err);
   }
 });
 
